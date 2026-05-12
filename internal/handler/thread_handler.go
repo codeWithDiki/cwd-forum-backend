@@ -289,8 +289,6 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 		})
 	}
 
-	wp.(*workerpool.WorkerPool).StopWait()
-
 	if err != nil {
 		c.JSON(500, gin.H{
 			"success": false,

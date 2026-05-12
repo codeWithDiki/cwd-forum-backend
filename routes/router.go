@@ -17,7 +17,7 @@ func SetupRouter() *gin.Engine {
 
 	wp := *workerpool.New(20)
 
-	r.Use(middleware.AttachmentMiddleware(&wp))
+	r.Use(middleware.FileUploadMiddleware(&wp))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -138,6 +138,22 @@ func SetupRouter() *gin.Engine {
 			attachment.GET("/:id", attachmentHandler.GetAttachmentByID)
 			attachment.DELETE("/:id", attachmentHandler.DeleteAttachment)
 			attachment.GET("/post/:post_id", attachmentHandler.GetAttachmentsByPostID)
+		}
+
+		{
+			badgeRepo := repository.NewBadgeRepository(db)
+			badgeService := service.NewBadgeService(badgeRepo)
+			badgeHandler := handler.NewBadgeHandler(badgeService)
+
+			badge := v1.Group("/badges")
+
+			badge.Use(middleware.JWTMiddleware())
+
+			badge.GET("/", badgeHandler.GetAllBadges)
+			badge.POST("/", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Create)
+			badge.GET("/:id", badgeHandler.GetBadgeByID)
+			badge.PATCH("/:id", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Update)
+			badge.DELETE("/:id", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Delete)
 		}
 
 	}
