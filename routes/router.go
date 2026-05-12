@@ -105,6 +105,7 @@ func SetupRouter() *gin.Engine {
 			post.POST("/:id/reactions", middleware.JWTMiddleware(), middleware.IsUserBanned(db), postHandler.ReactPost)
 			post.PATCH("/:id", postHandler.Update)
 			post.DELETE("/:id", postHandler.Delete)
+			post.POST("/:id/mark-as-solution", middleware.JWTMiddleware(), postHandler.MarkAsSolution)
 		}
 
 		{

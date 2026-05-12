@@ -42,7 +42,7 @@ func IsAdminLogged() gin.HandlerFunc {
 			return
 		}
 
-		if user.Role != enum.RoleAdmin.String() {
+		if user.Role != enum.RoleAdmin.String() || user.Role != enum.RoleModerator.String() {
 			c.JSON(403, gin.H{
 				"success": false,
 				"error":   "Forbidden",

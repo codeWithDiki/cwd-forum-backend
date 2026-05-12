@@ -497,3 +497,42 @@ func (h *PostHandler) ReactPost(c *gin.Context) {
 		"message": "Reaction recorded successfully",
 	})
 }
+
+func (h *PostHandler) MarkAsSolution(c *gin.Context) {
+	idParam := c.Param("id")
+	ID, err := strconv.ParseUint(idParam, 10, 64)
+	userId := c.GetUint("user_id")
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "invalid post ID",
+		})
+		return
+	}
+
+	post, err := h.s.GetPostByID(ID)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	err = h.s.MarkAsSolution(uint64(post.ID), uint64(userId))
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "Post marked as solution successfully",
+	})
+}

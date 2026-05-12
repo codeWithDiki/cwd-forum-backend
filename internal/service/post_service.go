@@ -5,6 +5,8 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+
+	"gorm.io/gorm"
 )
 
 type PostService struct {
@@ -94,6 +96,8 @@ func (s *PostService) Update(
 		post.Content = *Content
 	}
 
+	post.IsEdited = true
+
 	err = s.r.Update(post)
 
 	if err != nil {
@@ -145,7 +149,35 @@ func (s *PostService) Vote(postID uint64, userID uint64, value int) error {
 
 	isUpvote := voteValue == enum.VoteUp
 
-	return s.r.Vote(post, userID, isUpvote)
+	var vote model.Vote
+
+	fErr := s.r.GormDB.Where("post_id = ? AND user_id = ?", post.ID, userID).First(&vote).Error
+
+	if fErr != nil && err != gorm.ErrRecordNotFound {
+		return fErr
+	}
+
+	if err == gorm.ErrRecordNotFound {
+		vote = model.Vote{
+			PostID: post.ID,
+			UserID: uint(userID),
+			Value:  0,
+		}
+	}
+
+	if isUpvote {
+		post.VoteScore = post.VoteScore + 1
+		s.r.GormDB.Save(post)
+
+		vote.Value = int(enum.VoteUp)
+		return s.r.GormDB.Save(&vote).Error
+	}
+
+	post.VoteScore = post.VoteScore - 1
+	s.r.GormDB.Save(post)
+
+	vote.Value = int(enum.VoteDown)
+	return s.r.GormDB.Save(&vote).Error
 }
 
 func (s *PostService) React(postID uint64, userID uint64, emoji int) error {
@@ -165,7 +197,91 @@ func (s *PostService) React(postID uint64, userID uint64, emoji int) error {
 		return errors.New("Post not found")
 	}
 
-	return s.r.Reaction(post, userID, int(emojiValue))
+	reaction := model.Reaction{
+		PostId: post.ID,
+		UserId: uint(userID),
+		Emoji:  emojiValue.String(),
+	}
+
+	var existsReaction model.Reaction
+
+	fErr := s.r.GormDB.
+		Where("post_id = ? AND user_id = ?", post.ID, userID).
+		First(&existsReaction).Error
+
+	if fErr != nil && err != gorm.ErrRecordNotFound {
+		return fErr
+	}
+
+	if existsReaction.ID != 0 {
+		return s.r.GormDB.Delete(&existsReaction).Error
+	}
+
+	if existsReaction.Emoji == reaction.Emoji {
+		return s.r.GormDB.Delete(&existsReaction).Error
+	}
+
+	if existsReaction.Emoji != reaction.Emoji {
+		err = s.r.GormDB.Delete(&existsReaction).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	return s.r.GormDB.Create(&reaction).Error
+}
+
+func (s *PostService) MarkAsSolution(postID uint64, userID uint64) error {
+	post, err := s.r.GetPostByID(postID)
+
+	if err != nil {
+		return err
+	}
+
+	if post == nil {
+		return errors.New("Post not found")
+	}
+
+	var thread model.Thread
+	err = s.r.GormDB.Where("id = ?", post.ThreadID).First(&thread).Error
+
+	if err != nil {
+		return err
+	}
+
+	if thread.ID == 0 {
+		return errors.New("Thread not found")
+	}
+
+	if thread.AuthorID != uint(userID) {
+		return errors.New("Unauthorized")
+	}
+
+	if post.AuthorID != uint(userID) {
+		return errors.New("Unauthorized")
+	}
+
+	posts := thread.Posts
+
+	var hasSolution bool
+
+	for _, p := range posts {
+		if p.ID == post.ID {
+			continue
+		}
+
+		if p.IsSolution {
+			hasSolution = true
+		}
+	}
+
+	if hasSolution {
+		return errors.New("Thread already has a solution")
+	}
+
+	return s.r.GormDB.Model(&model.Post{}).
+		Where("id = ?", postID).
+		Update("is_solution", true).Error
 }
 
 func (s *PostService) CreateAttachment(post *model.Post, attachment *model.Attachment) (*model.Attachment, error) {

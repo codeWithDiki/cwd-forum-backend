@@ -219,3 +219,21 @@ func (s *ThreadService) Delete(ID uint64) error {
 func (s *ThreadService) CreatePostAttachment(post *model.Post, attachment *model.Attachment) error {
 	return s.r.CreatePostAttachment(post, attachment)
 }
+
+func (s *ThreadService) CanMarkAsSolution(threadID uint64, userID uint64) (bool, error) {
+	thread, err := s.r.GetThreadByID(threadID)
+
+	if err != nil {
+		return false, err
+	}
+
+	if thread == nil {
+		return false, errors.New("Thread not found")
+	}
+
+	if thread.AuthorID != uint(userID) {
+		return false, errors.New("Unauthorized")
+	}
+
+	return true, nil
+}
