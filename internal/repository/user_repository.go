@@ -101,3 +101,20 @@ func (r *UserRepository) Restore(user *model.User) error {
 	user.DeletedAt = gorm.DeletedAt{Time: time.Time{}, Valid: false}
 	return r.GormDB.Save(user).Error
 }
+
+func (r *UserRepository) Follow(userID uint64, followerID uint64) error {
+	return r.GormDB.Exec("INSERT INTO user_users (follower_id, followed_id) VALUES (?, ?)", userID, followerID).Error
+}
+
+func (r *UserRepository) Unfollow(userID uint64, followerID uint64) error {
+	return r.GormDB.Exec("DELETE FROM user_users WHERE follower_id = ? AND followed_id = ?", userID, followerID).Error
+}
+
+func (r *UserRepository) IsFollowing(userID uint64, followerID uint64) (bool, error) {
+	var count int64
+	err := r.GormDB.Table("user_users").Where("follower_id = ? AND followed_id = ?", userID, followerID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

@@ -307,3 +307,85 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		"message": "ok",
 	})
 }
+
+func (h *UserHandler) Follow(c *gin.Context) {
+	param := c.Param("id")
+	var userID uint64
+
+	userIDParam, pErr := c.Get("user_id")
+
+	if !pErr {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "user ID is required",
+		})
+		return
+	}
+
+	userID = uint64(userIDParam.(uint))
+	id, err := strconv.ParseUint(param, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "invalid user ID",
+		})
+		return
+	}
+
+	err = h.Service.FollowUser(userID, id, c)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "ok",
+	})
+}
+
+func (h *UserHandler) Unfollow(c *gin.Context) {
+	param := c.Param("id")
+	var userID uint64
+
+	userIDParam, pErr := c.Get("user_id")
+
+	if !pErr {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "user ID is required",
+		})
+		return
+	}
+
+	userID = uint64(userIDParam.(uint))
+	id, err := strconv.ParseUint(param, 10, 64)
+
+	if err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "invalid user ID",
+		})
+		return
+	}
+
+	err = h.Service.UnfollowUser(userID, id, c)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "ok",
+	})
+}

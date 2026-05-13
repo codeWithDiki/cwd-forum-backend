@@ -55,6 +55,8 @@ func SetupRouter() *gin.Engine {
 			userUtility := user.Group("/utility")
 			userUtility.GET("/me", middleware.JWTMiddleware(redis), userHandler.GetUserByID)
 			userUtility.PATCH("/me", middleware.JWTMiddleware(redis), userHandler.UpdateUser)
+			userUtility.POST("/follow/:id", middleware.JWTMiddleware(redis), userHandler.Follow)
+			userUtility.POST("/unfollow/:id", middleware.JWTMiddleware(redis), userHandler.Unfollow)
 
 			user.DELETE("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), userHandler.DeleteUser)
 		}

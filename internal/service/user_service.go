@@ -407,3 +407,55 @@ func (s *UserService) DeleteUser(ID uint64, ctx *gin.Context) error {
 
 	return nil
 }
+
+func (s *UserService) FollowUser(userID uint64, targetUserID uint64, ctx *gin.Context) error {
+	isFollowing, err := s.Repo.IsFollowing(userID, targetUserID)
+
+	if err != nil {
+		return err
+	}
+
+	if isFollowing {
+		return errors.New("Already following this user")
+	}
+
+	fErr := s.Repo.Follow(userID, targetUserID)
+
+	if fErr != nil {
+		return fErr
+	}
+
+	delStatus := s.Repo.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10)+":following", "user:"+strconv.FormatUint(targetUserID, 10)+":followers")
+
+	if delStatus.Err() != nil {
+		return delStatus.Err()
+	}
+
+	return nil
+}
+
+func (s *UserService) UnfollowUser(userID uint64, targetUserID uint64, ctx *gin.Context) error {
+	isFollowing, err := s.Repo.IsFollowing(userID, targetUserID)
+
+	if err != nil {
+		return err
+	}
+
+	if !isFollowing {
+		return errors.New("Not following this user")
+	}
+
+	uErr := s.Repo.Unfollow(userID, targetUserID)
+
+	if uErr != nil {
+		return uErr
+	}
+
+	delStatus := s.Repo.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10)+":following", "user:"+strconv.FormatUint(targetUserID, 10)+":followers")
+
+	if delStatus.Err() != nil {
+		return delStatus.Err()
+	}
+
+	return nil
+}
