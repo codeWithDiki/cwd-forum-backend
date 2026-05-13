@@ -25,7 +25,7 @@ func IsCanUpdateThread(db *gorm.DB, s *service.ThreadService) gin.HandlerFunc {
 			return
 		}
 
-		thread, err := s.GetThreadByID(threadID)
+		thread, err := s.GetThreadByID(threadID, c)
 
 		if err != nil {
 			c.JSON(404, gin.H{

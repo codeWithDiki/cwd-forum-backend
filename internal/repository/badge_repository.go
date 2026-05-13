@@ -3,16 +3,19 @@ package repository
 import (
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type BadgeRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewBadgeRepository(db *gorm.DB) *BadgeRepository {
+func NewBadgeRepository(db *gorm.DB, redis *redis.Client) *BadgeRepository {
 	return &BadgeRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 

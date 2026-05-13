@@ -3,16 +3,19 @@ package repository
 import (
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type TagRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewTagRepository(db *gorm.DB) *TagRepository {
+func NewTagRepository(db *gorm.DB, redis *redis.Client) *TagRepository {
 	return &TagRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 

@@ -1,18 +1,24 @@
 package repository
 
 import (
+	"context"
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
+var ctx = context.Background()
+
 type AttachmentRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewAttachmentRepository(db *gorm.DB) *AttachmentRepository {
+func NewAttachmentRepository(db *gorm.DB, redis *redis.Client) *AttachmentRepository {
 	return &AttachmentRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 
@@ -24,6 +30,7 @@ func (r AttachmentRepository) GetAllAttachments() ([]*model.Attachment, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return attachments, nil
 }
 

@@ -48,7 +48,7 @@ type UpdateBadgeRequest struct {
 
 // GETTER
 func (h BadgeHandler) GetAllBadges(c *gin.Context) {
-	badges, err := h.s.GetAllBadges()
+	badges, err := h.s.GetAllBadges(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -76,7 +76,7 @@ func (h BadgeHandler) GetBadgeByID(c *gin.Context) {
 		return
 	}
 
-	badge, err := h.s.GetBadgeByID(id)
+	badge, err := h.s.GetBadgeByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -122,15 +122,24 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	req.BackgroundColor = c.PostForm("background_color")
 
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
+	ext := filepath.Ext(file.Filename)
+	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	var iconUrl *string
+
+	iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
+	iconUrl = &iconUrlStr
+
+	req.IconUrl = iconUrlStr
 
 	badge, err := h.s.Create(
 		req.Name,
 		req.Description,
-		"", // IconUrl will be set after file upload
+		req.IconUrl,
 		req.CriteriaType,
 		req.CriteriaValue,
 		req.FontColor,
 		req.BackgroundColor,
+		c,
 	)
 
 	if err != nil {
@@ -144,8 +153,6 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	wp.Submit(func() {
 		var updateReq UpdateBadgeRequest
 		fmt.Println("Uploading from Post")
-		ext := filepath.Ext(file.Filename)
-		newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
 		s3client := c.MustGet("s3Client")
 		fileBinary, err := file.Open()
@@ -175,13 +182,6 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 			return
 		}
 
-		var iconUrl *string
-
-		iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-		iconUrl = &iconUrlStr
-
-		req.IconUrl = iconUrlStr
-
 		updateReq.IconUrl = iconUrl
 
 		h.s.Update(
@@ -193,6 +193,7 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 			&req.CriteriaValue,
 			&req.FontColor,
 			&req.BackgroundColor,
+			c,
 		)
 
 	})
@@ -268,6 +269,7 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 		req.CriteriaValue,
 		req.FontColor,
 		req.BackgroundColor,
+		c,
 	)
 
 	wp.Submit(func() {
@@ -331,6 +333,7 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 			req.CriteriaValue,
 			req.FontColor,
 			req.BackgroundColor,
+			c,
 		)
 
 	})
@@ -361,7 +364,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	badge, err := h.s.GetBadgeByID(id)
+	badge, err := h.s.GetBadgeByID(id, c)
 
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
 
@@ -392,7 +395,7 @@ func (h *BadgeHandler) Delete(c *gin.Context) {
 		})
 	}
 
-	err = h.s.Delete(badge)
+	err = h.s.Delete(badge, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{

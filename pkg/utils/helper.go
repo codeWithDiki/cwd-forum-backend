@@ -72,7 +72,7 @@ func UploadPostAttachmentFilesToS3(post *model.Post, s3client interface{}, files
 				})
 
 				attachment := model.Attachment{
-					PostId:     post.ID,
+					PostID:     post.ID,
 					UploaderId: post.AuthorID,
 					Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), f.Filename),
 					Filename:   f.Filename,

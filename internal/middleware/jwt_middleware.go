@@ -3,14 +3,16 @@ package middleware
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	jwtLib "github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/gin-gonic/gin"
 )
 
-func JWTMiddleware() gin.HandlerFunc {
+func JWTMiddleware(redis *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 
@@ -36,18 +38,48 @@ func JWTMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		claims, ok := token.Claims.(jwtLib.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"message": "invalid claims",
+		exists, err := redis.Exists(c, tokenString).Result()
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "internal server error",
 			})
 			c.Abort()
 			return
 		}
 
-		// simpan user_id ke gin context
-		c.Set("user_id", uint(claims["user_id"].(float64)))
+		if exists > 0 {
+			var userID int
 
-		c.Next()
+			user_id, err := redis.Get(c, tokenString).Result()
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"message": "internal server error",
+				})
+				c.Abort()
+				return
+			}
+
+			userID, err = strconv.Atoi(user_id)
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"message": "internal server error",
+				})
+				c.Abort()
+				return
+			}
+
+			c.Set("user_id", uint(userID))
+			c.Set("token", tokenString)
+			c.Next()
+			return
+		}
+
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "token expired",
+		})
+		c.Abort()
 	}
 }

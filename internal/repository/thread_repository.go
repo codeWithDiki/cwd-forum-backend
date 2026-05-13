@@ -3,16 +3,19 @@ package repository
 import (
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type ThreadRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewThreadRepository(db *gorm.DB) *ThreadRepository {
+func NewThreadRepository(db *gorm.DB, redis *redis.Client) *ThreadRepository {
 	return &ThreadRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 

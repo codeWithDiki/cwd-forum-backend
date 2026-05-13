@@ -37,7 +37,7 @@ type UpdateUserRequest struct {
 
 // GETTER
 func (h UserHandler) GetAllUsers(c *gin.Context) {
-	users, err := h.Service.GetAllUsers()
+	users, err := h.Service.GetAllUsers(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -81,7 +81,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	user, err := h.Service.GetUserByID(id)
+	user, err := h.Service.GetUserByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -101,7 +101,7 @@ func (h UserHandler) GetUserByID(c *gin.Context) {
 func (h UserHandler) GetUserByUsername(c *gin.Context) {
 	username := c.Param("username")
 
-	user, err := h.Service.GetUserByUsername(username)
+	user, err := h.Service.GetUserByUsername(username, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -120,7 +120,7 @@ func (h UserHandler) GetUserByUsername(c *gin.Context) {
 func (h UserHandler) GetUserByEmail(c *gin.Context) {
 	email := c.Param("email")
 
-	user, err := h.Service.GetUserByEmail(email)
+	user, err := h.Service.GetUserByEmail(email, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -137,24 +137,22 @@ func (h UserHandler) GetUserByEmail(c *gin.Context) {
 	})
 }
 
-func (h UserHandler) Login(c *gin.Context) {
-	var req struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+func (h UserHandler) GetFollowers(c *gin.Context) {
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	userID := c.GetUint64("user_id")
+
+	if userID != 0 {
 		c.JSON(400, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "invalid user ID",
 		})
 		return
 	}
 
-	token, err := h.Service.Login(req.Username, req.Password)
+	followers, err := h.Service.GetFollowers(userID, c)
 
 	if err != nil {
-		c.JSON(401, gin.H{
+		c.JSON(500, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -163,8 +161,34 @@ func (h UserHandler) Login(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"success": true,
-		"message": "ok",
-		"token":   token,
+		"data":    followers,
+	})
+}
+
+func (h UserHandler) GetFollowing(c *gin.Context) {
+	userID := c.GetUint64("user_id")
+
+	if userID != 0 {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "invalid user ID",
+		})
+		return
+	}
+
+	following, err := h.Service.GetFollowing(userID, c)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data":    following,
 	})
 }
 
@@ -187,6 +211,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		req.Password,
 		req.Avatar,
 		req.Bio,
+		c,
 	)
 
 	if err != nil {
@@ -236,6 +261,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		req.Password,
 		req.Avatar,
 		req.Bio,
+		c,
 	)
 
 	if err != nil {
@@ -266,7 +292,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.DeleteUser(id)
+	err = h.Service.DeleteUser(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{

@@ -30,7 +30,7 @@ type UpdateTagRequest struct {
 }
 
 func (h TagHandler) GetAllTags(c *gin.Context) {
-	tags, err := h.s.GetAllTags()
+	tags, err := h.s.GetAllTags(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -58,7 +58,7 @@ func (h TagHandler) GetTagByID(c *gin.Context) {
 		return
 	}
 
-	tag, err := h.s.GetTagByID(id)
+	tag, err := h.s.GetTagByID(id, c)
 	if err != nil {
 		c.JSON(404, gin.H{
 			"success": false,
@@ -76,7 +76,7 @@ func (h TagHandler) GetTagByID(c *gin.Context) {
 func (h TagHandler) GetTagBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	tag, err := h.s.GetTagBySlug(slug)
+	tag, err := h.s.GetTagBySlug(slug, c)
 	if err != nil {
 		c.JSON(404, gin.H{
 			"success": false,
@@ -101,7 +101,7 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := h.s.Create(req.Name, req.Slug, req.Color)
+	tag, err := h.s.Create(req.Name, req.Slug, req.Color, c)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"success": false,
@@ -137,7 +137,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 		return
 	}
 
-	tag, err := h.s.Update(id, req.Name, req.Slug, req.Color)
+	tag, err := h.s.Update(id, req.Name, req.Slug, req.Color, c)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"success": false,
@@ -164,7 +164,7 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(id)
+	err = h.s.Delete(id, c)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"success": false,

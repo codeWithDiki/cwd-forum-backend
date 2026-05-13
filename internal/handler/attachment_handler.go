@@ -19,7 +19,7 @@ func NewAttachmentHandler(s *service.AttachmentService) *AttachmentHandler {
 
 // GETTER
 func (h AttachmentHandler) GetAllAttachments(c *gin.Context) {
-	attachments, err := h.s.GetAllAttachments()
+	attachments, err := h.s.GetAllAttachments(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -47,7 +47,7 @@ func (h AttachmentHandler) GetAttachmentByID(c *gin.Context) {
 		return
 	}
 
-	attachment, err := h.s.GetAttachmentByID(id)
+	attachment, err := h.s.GetAttachmentByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -75,7 +75,7 @@ func (h AttachmentHandler) GetAttachmentsByPostID(c *gin.Context) {
 		return
 	}
 
-	attachments, err := h.s.GetAttachmentsByPostID(postID)
+	attachments, err := h.s.GetAttachmentsByPostID(postID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -104,7 +104,7 @@ func (h AttachmentHandler) DeleteAttachment(c *gin.Context) {
 		return
 	}
 
-	attachment, err := h.s.GetAttachmentByID(id)
+	attachment, err := h.s.GetAttachmentByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -122,7 +122,7 @@ func (h AttachmentHandler) DeleteAttachment(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(attachment)
+	err = h.s.Delete(attachment, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{

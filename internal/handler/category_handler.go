@@ -39,7 +39,7 @@ func NewCategoryHandler(s *service.CategoryService) *CategoryHandler {
 
 // GETTER
 func (h CategoryHandler) GetAllCategories(c *gin.Context) {
-	categories, err := h.s.GetAllCategories()
+	categories, err := h.s.GetAllCategories(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -67,7 +67,7 @@ func (h CategoryHandler) GetCategoryByID(c *gin.Context) {
 		return
 	}
 
-	category, err := h.s.GetCategoryByID(id)
+	category, err := h.s.GetCategoryByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -94,7 +94,7 @@ func (h CategoryHandler) GetCategoryByID(c *gin.Context) {
 func (h CategoryHandler) GetCategoryBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	category, err := h.s.GetCategoryBySlug(slug)
+	category, err := h.s.GetCategoryBySlug(slug, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -138,6 +138,7 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 		req.IconUrl,
 		req.SortOrder,
 		req.IsPrivate,
+		c,
 	)
 
 	if err != nil {
@@ -185,6 +186,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		req.IconUrl,
 		req.SortOrder,
 		req.IsPrivate,
+		c,
 	)
 
 	if err != nil {
@@ -213,7 +215,7 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(id)
+	err = h.s.Delete(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{

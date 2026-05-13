@@ -46,7 +46,7 @@ type UpdateThreadRequest struct {
 
 // GETTER
 func (h ThreadHandler) GetAllThreads(c *gin.Context) {
-	threads, err := h.s.GetAllThreads()
+	threads, err := h.s.GetAllThreads(c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -74,7 +74,7 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 		return
 	}
 
-	thread, err := h.s.GetThreadByID(id)
+	thread, err := h.s.GetThreadByID(id, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -93,7 +93,7 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 func (h ThreadHandler) GetThreadBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	thread, err := h.s.GetThreadBySlug(slug)
+	thread, err := h.s.GetThreadBySlug(slug, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -121,7 +121,7 @@ func (h ThreadHandler) GetThreadsByCategoryID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByCategoryID(uint(categoryID))
+	threads, err := h.s.GetThreadsByCategoryID(uint(categoryID), c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -149,7 +149,7 @@ func (h ThreadHandler) GetThreadsByAuthorID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByAuthorID(uint(authorID))
+	threads, err := h.s.GetThreadsByAuthorID(uint(authorID), c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -177,7 +177,7 @@ func (h ThreadHandler) GetThreadsByTagID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByTagID(uint(tagID))
+	threads, err := h.s.GetThreadsByTagID(uint(tagID), c)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -249,7 +249,16 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 		req.Content,
 		req.AuthorID,
 		req.TagIDs,
+		c,
 	)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
 
 	for _, file := range Attachments {
 
@@ -273,7 +282,7 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 			})
 
 			attachment := model.Attachment{
-				PostId:     post.ID,
+				PostID:     post.ID,
 				UploaderId: post.AuthorID,
 				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
 				Filename:   newFileName,
@@ -281,20 +290,12 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 				FileSize:   file.Size,
 			}
 
-			h.s.CreatePostAttachment(post, &attachment)
+			h.s.CreatePostAttachment(post, &attachment, c)
 
 			if uErr != nil {
 				return
 			}
 		})
-	}
-
-	if err != nil {
-		c.JSON(500, gin.H{
-			"success": false,
-			"error":   err.Error(),
-		})
-		return
 	}
 
 	c.JSON(200, gin.H{
@@ -337,6 +338,7 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 		req.IsPinned,
 		req.IsLocked,
 		req.IsSolved,
+		c,
 	)
 
 	if err != nil {
@@ -367,7 +369,7 @@ func (h *ThreadHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(ID)
+	err = h.s.Delete(ID, c)
 
 	if err != nil {
 		c.JSON(500, gin.H{

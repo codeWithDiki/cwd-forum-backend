@@ -4,16 +4,19 @@ import (
 	"gin-quickstart/internal/model"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type UserRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
+func NewUserRepository(db *gorm.DB, redis *redis.Client) *UserRepository {
 	return &UserRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 
@@ -52,6 +55,28 @@ func (r UserRepository) GetUserByEmail(email string) (*model.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r UserRepository) GetFollowers(userID uint64) ([]model.User, error) {
+	var followers []model.User
+	err := r.GormDB.Joins("JOIN user_users ON user_users.follower_id = users.id").
+		Where("user_users.user_id = ?", userID).
+		Find(&followers).Error
+	if err != nil {
+		return nil, err
+	}
+	return followers, nil
+}
+
+func (r UserRepository) GetFollowing(userID uint64) ([]model.User, error) {
+	var following []model.User
+	err := r.GormDB.Joins("JOIN user_users ON user_users.user_id = users.id").
+		Where("user_users.follower_id = ?", userID).
+		Find(&following).Error
+	if err != nil {
+		return nil, err
+	}
+	return following, nil
 }
 
 // SETTER

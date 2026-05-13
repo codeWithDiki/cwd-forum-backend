@@ -3,16 +3,19 @@ package repository
 import (
 	"gin-quickstart/internal/model"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type CategoryRepository struct {
-	GormDB *gorm.DB
+	GormDB      *gorm.DB
+	RedisClient *redis.Client
 }
 
-func NewCategoryRepository(db *gorm.DB) *CategoryRepository {
+func NewCategoryRepository(db *gorm.DB, redis *redis.Client) *CategoryRepository {
 	return &CategoryRepository{
-		GormDB: db,
+		GormDB:      db,
+		RedisClient: redis,
 	}
 }
 

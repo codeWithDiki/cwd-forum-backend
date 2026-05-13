@@ -6,7 +6,7 @@ import (
 	"gin-quickstart/internal/middleware"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/internal/service"
-	"net/http"
+	"gin-quickstart/pkg/logger"
 
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
@@ -17,13 +17,18 @@ func SetupRouter() *gin.Engine {
 
 	wp := *workerpool.New(20)
 
-	r.Use(middleware.FileUploadMiddleware(&wp))
+	redis := config.RedisClient
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
+	log, err := logger.New(logger.Config{
+		Production: true,
 	})
+
+	if err != nil {
+		panic("failed to initialize logger: " + err.Error())
+	}
+
+	r.Use(middleware.LoggerMiddleware(log))
+	r.Use(middleware.FileUploadMiddleware(&wp))
 
 	{
 		v1 := r.Group("/v1")
@@ -35,62 +40,61 @@ func SetupRouter() *gin.Engine {
 		}
 
 		{
-			userRepo := repository.NewUserRepository(db)
+			userRepo := repository.NewUserRepository(db, redis)
 			userService := service.NewUserService(userRepo)
 			userHandler := handler.NewUserHandler(userService)
 
 			user := v1.Group("/users")
 
-			user.GET("/", middleware.JWTMiddleware(), middleware.IsAdminLogged(), userHandler.GetAllUsers)
-			user.POST("/", userHandler.CreateUser)
-			user.POST("/login", userHandler.Login)
-			user.GET("/:id", middleware.JWTMiddleware(), middleware.IsAdminLogged(), userHandler.GetUserByID)
-			user.GET("/username/:username", userHandler.GetUserByUsername)
-			user.PATCH("/:id", middleware.JWTMiddleware(), middleware.IsAdminLogged(), userHandler.UpdateUser)
+			user.GET("/", middleware.JWTMiddleware(redis), userHandler.GetAllUsers)
+			user.POST("/", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), userHandler.CreateUser)
+			user.GET("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), userHandler.GetUserByID)
+			user.GET("/username/:username", middleware.JWTMiddleware(redis), userHandler.GetUserByUsername)
+			user.PATCH("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), userHandler.UpdateUser)
 
 			userUtility := user.Group("/utility")
-			userUtility.GET("/me", middleware.JWTMiddleware(), userHandler.GetUserByID)
-			userUtility.PATCH("/me", middleware.JWTMiddleware(), userHandler.UpdateUser)
+			userUtility.GET("/me", middleware.JWTMiddleware(redis), userHandler.GetUserByID)
+			userUtility.PATCH("/me", middleware.JWTMiddleware(redis), userHandler.UpdateUser)
 
-			user.DELETE("/:id", middleware.JWTMiddleware(), middleware.IsAdminLogged(), userHandler.DeleteUser)
+			user.DELETE("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), userHandler.DeleteUser)
 		}
 
 		{
-			categoryRepo := repository.NewCategoryRepository(db)
+			categoryRepo := repository.NewCategoryRepository(db, redis)
 			categoryService := service.NewCategoryService(categoryRepo)
 			categoryHandler := handler.NewCategoryHandler(categoryService)
 
 			category := v1.Group("/categories")
 
 			category.GET("/", categoryHandler.GetAllCategories)
-			category.POST("/", middleware.JWTMiddleware(), middleware.IsAdminLogged(), categoryHandler.Create)
+			category.POST("/", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), categoryHandler.Create)
 			category.GET("/:id", categoryHandler.GetCategoryByID)
 			category.GET("/slug/:slug", categoryHandler.GetCategoryBySlug)
-			category.PATCH("/:id", middleware.JWTMiddleware(), middleware.IsAdminLogged(), categoryHandler.Update)
-			category.DELETE("/:id", middleware.JWTMiddleware(), middleware.IsAdminLogged(), categoryHandler.Delete)
+			category.PATCH("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), categoryHandler.Update)
+			category.DELETE("/:id", middleware.JWTMiddleware(redis), middleware.IsAdminLogged(redis), categoryHandler.Delete)
 
 		}
 
 		{
-			threadRepo := repository.NewThreadRepository(db)
+			threadRepo := repository.NewThreadRepository(db, redis)
 			threadService := service.NewThreadService(threadRepo)
 			threadHandler := handler.NewThreadHandler(threadService)
 
 			thread := v1.Group("/threads")
 
 			thread.GET("/", threadHandler.GetAllThreads)
-			thread.POST("/", middleware.JWTMiddleware(), middleware.IsUserBanned(db), middleware.S3Middleware(), threadHandler.Create)
+			thread.POST("/", middleware.JWTMiddleware(redis), middleware.IsUserBanned(db), middleware.S3Middleware(), threadHandler.Create)
 			thread.GET("/:id", threadHandler.GetThreadByID)
 			thread.GET("/slug/:slug", threadHandler.GetThreadBySlug)
 			thread.GET("/category/:category_id", threadHandler.GetThreadsByCategoryID)
 			thread.GET("/author/:author_id", threadHandler.GetThreadsByAuthorID)
 			thread.GET("/tag/:tag_id", threadHandler.GetThreadsByTagID)
-			thread.PATCH("/:id", middleware.JWTMiddleware(), middleware.IsCanUpdateThread(db, threadService), threadHandler.Update)
-			thread.DELETE("/:id", middleware.JWTMiddleware(), middleware.IsCanUpdateThread(db, threadService), threadHandler.Delete)
+			thread.PATCH("/:id", middleware.JWTMiddleware(redis), middleware.IsCanUpdateThread(db, threadService), threadHandler.Update)
+			thread.DELETE("/:id", middleware.JWTMiddleware(redis), middleware.IsCanUpdateThread(db, threadService), threadHandler.Delete)
 		}
 
 		{
-			postRepo := repository.NewPostRepository(db)
+			postRepo := repository.NewPostRepository(db, redis)
 			postService := service.NewPostService(postRepo)
 			postHandler := handler.NewPostHandler(postService)
 
@@ -99,40 +103,41 @@ func SetupRouter() *gin.Engine {
 			post.GET("/:id", postHandler.GetPostByID)
 			post.GET("/thread/:thread_id", postHandler.GetPostsByThreadID)
 			post.GET("/author/:author_id", postHandler.GetPostsByAuthorID)
-			post.POST("/", middleware.JWTMiddleware(), middleware.IsUserBanned(db), middleware.S3Middleware(), postHandler.Create)
-			post.POST("/:id/votes", middleware.JWTMiddleware(), middleware.IsUserBanned(db), postHandler.VotePost)
+			post.POST("/", middleware.JWTMiddleware(redis), middleware.IsUserBanned(db), middleware.S3Middleware(), postHandler.Create)
+			post.POST("/:id/votes", middleware.JWTMiddleware(redis), middleware.IsUserBanned(db), postHandler.VotePost)
 			post.GET("/:id/votes", postHandler.GetPostVotes)
-			post.POST("/:id/reactions", middleware.JWTMiddleware(), middleware.IsUserBanned(db), postHandler.ReactPost)
+			post.POST("/:id/reactions", middleware.JWTMiddleware(redis), middleware.IsUserBanned(db), postHandler.ReactPost)
 			post.PATCH("/:id", postHandler.Update)
 			post.DELETE("/:id", postHandler.Delete)
+			post.POST("/:id/mark-as-solution", middleware.JWTMiddleware(redis), postHandler.MarkAsSolution)
 		}
 
 		{
-			tagRepo := repository.NewTagRepository(db)
+			tagRepo := repository.NewTagRepository(db, redis)
 			tagService := service.NewTagService(tagRepo)
 			tagHandler := handler.NewTagHandler(tagService)
 
 			tag := v1.Group("/tags")
 
-			tag.Use(middleware.JWTMiddleware())
+			tag.Use(middleware.JWTMiddleware(redis))
 
 			tag.GET("/", tagHandler.GetAllTags)
-			tag.POST("/", middleware.IsAdminLogged(), tagHandler.CreateTag)
+			tag.POST("/", middleware.IsAdminLogged(redis), tagHandler.CreateTag)
 			tag.GET("/:id", tagHandler.GetTagByID)
 			tag.GET("/slug/:slug", tagHandler.GetTagBySlug)
-			tag.PATCH("/:id", middleware.IsAdminLogged(), tagHandler.UpdateTag)
-			tag.DELETE("/:id", middleware.IsAdminLogged(), tagHandler.DeleteTag)
+			tag.PATCH("/:id", middleware.IsAdminLogged(redis), tagHandler.UpdateTag)
+			tag.DELETE("/:id", middleware.IsAdminLogged(redis), tagHandler.DeleteTag)
 		}
 
 		{
-			attachmentRepo := repository.NewAttachmentRepository(db)
+			attachmentRepo := repository.NewAttachmentRepository(db, redis)
 			attachmentService := service.NewAttachmentService(attachmentRepo)
 			attachmentHandler := handler.NewAttachmentHandler(attachmentService)
 
 			attachment := v1.Group("/attachments")
 
-			attachment.Use(middleware.JWTMiddleware())
-			attachment.Use(middleware.IsAdminLogged())
+			attachment.Use(middleware.JWTMiddleware(redis))
+			attachment.Use(middleware.IsAdminLogged(redis))
 
 			attachment.GET("/", attachmentHandler.GetAllAttachments)
 			attachment.GET("/:id", attachmentHandler.GetAttachmentByID)
@@ -141,19 +146,32 @@ func SetupRouter() *gin.Engine {
 		}
 
 		{
-			badgeRepo := repository.NewBadgeRepository(db)
+			badgeRepo := repository.NewBadgeRepository(db, redis)
 			badgeService := service.NewBadgeService(badgeRepo)
 			badgeHandler := handler.NewBadgeHandler(badgeService)
 
 			badge := v1.Group("/badges")
 
-			badge.Use(middleware.JWTMiddleware())
+			badge.Use(middleware.JWTMiddleware(redis))
 
 			badge.GET("/", badgeHandler.GetAllBadges)
-			badge.POST("/", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Create)
+			badge.POST("/", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Create)
 			badge.GET("/:id", badgeHandler.GetBadgeByID)
-			badge.PATCH("/:id", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Update)
-			badge.DELETE("/:id", middleware.IsAdminLogged(), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Delete)
+			badge.PATCH("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Update)
+			badge.DELETE("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Delete)
+		}
+
+		{
+			authRepo := repository.NewAuthRepository(db, redis)
+			authService := service.NewAuthService(authRepo)
+			authHandler := handler.NewAuthHandler(authService)
+
+			auth := v1.Group("/auth")
+
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/logout", middleware.JWTMiddleware(redis), authHandler.Logout)
+			auth.PATCH("/profile", middleware.JWTMiddleware(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), authHandler.UpdateProfile)
 		}
 
 	}

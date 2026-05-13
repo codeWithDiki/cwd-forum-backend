@@ -6,9 +6,10 @@ import (
 	"gin-quickstart/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-func IsAdminLogged() gin.HandlerFunc {
+func IsAdminLogged(redis *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
@@ -30,7 +31,7 @@ func IsAdminLogged() gin.HandlerFunc {
 			return
 		}
 
-		userRepo := repository.NewUserRepository(db)
+		userRepo := repository.NewUserRepository(db, redis)
 
 		user, err := userRepo.GetUserByID(uint64(userID.(uint)))
 		if err != nil {
