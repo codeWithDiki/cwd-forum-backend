@@ -1,7 +1,6 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -24,24 +23,3 @@ type Notification struct {
 	Thread *Thread `gorm:"foreignKey:ThreadId" json:"thread,omitempty"`
 	Post   *Post   `gorm:"foreignKey:PostId" json:"post,omitempty"`
 }
-
-type User struct {
-	ID       uint      `gorm:"primaryKey" json:"id"`
-	Email    string    `json:"email"`
-	Password string    `json:"password"`
-}
-
-type Thread struct {
-	ID       uint      `gorm:"primaryKey" json:"id"`
-	Title     string    `json:"title"`
-	Content  string    `json:"content"`
-}
-
-type Post struct {
-	ID       uint      `gorm:"primaryKey" json:"id"`
-	Content  string    `json:"content"`
-	AuthorId uint      `json:"author_id"`
-}
-
-var DB_DRIVER = "sqlite3"
-var DB_SOURCE = "database/forum.db"
