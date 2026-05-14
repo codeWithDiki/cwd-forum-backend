@@ -933,7 +933,9 @@
                 {
                   "key": "attachments",
                   "type": "file",
-                  "src": "postman-cloud:///1f14d3ac-d56d-4d60-88df-450286d5a603"
+                  "src": [
+                    "postman-cloud:///1f14d3ac-d56d-4d60-88df-450286d5a603"
+                  ]
                 }
               ]
             },
@@ -1565,7 +1567,9 @@
                 {
                   "key": "icon",
                   "type": "file",
-                  "src": "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ]
                 },
                 {
                   "key": "criteria_type",
@@ -1631,7 +1635,9 @@
                 {
                   "key": "icon",
                   "type": "file",
-                  "src": "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ]
                 },
                 {
                   "key": "criteria_type",
@@ -1765,7 +1771,9 @@
                 {
                   "key": "avatar",
                   "type": "file",
-                  "src": "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ]
                 },
                 {
                   "key": "email",
@@ -1845,6 +1853,39 @@
         }
       ],
       "id": "907000ed-1a9c-48de-a696-cd44b83c5165"
+    },
+    {
+      "name": "Notification",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "id": "edad68d0-d2c5-42f8-90ee-0f520e45921e",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg4NDE1MDMsInVzZXJfaWQiOjF9.GBHYmmqylL5XaSWwwmo96tGk8sVFJGpx5ax0Il3RixM",
+                "type": "text",
+                "uuid": "b68ea995-6472-4745-9c55-268acd676ecc"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/notifications",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "be7594a7-fef1-4b8f-8cdd-e5d2cd7d6b77"
     }
   ]
 }
