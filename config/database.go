@@ -4,19 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 func InitDB() (*gorm.DB, error) {
-	err_env := godotenv.Load()
-
-	if err_env != nil {
-		return nil, fmt.Errorf("error loading .env file: %v", err_env)
-	}
-
 	driver := os.Getenv("DB_DRIVER")
 	source := os.Getenv("DB_SOURCE")
 
