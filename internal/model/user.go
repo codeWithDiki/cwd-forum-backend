@@ -12,7 +12,7 @@ type User struct {
 	Name        string         `json:"name" binding:"required"`
 	Username    string         `json:"username" gorm:"unique index" binding:"required,alphanum"`
 	Email       string         `json:"email" gorm:"unique index" binding:"required,email"`
-	Password    string         `json:"password" binding:"required,min=8"` // Exclude from JSON responses
+	Password    string         `json:"-" binding:"required,min=8"` // Exclude from JSON responses
 	Avatar      string         `json:"avatar" binding:"omitempty,url"`
 	Bio         string         `json:"bio" binding:"omitempty,max=500"`
 	Role        string         `json:"role"` // e.g., "user", "moderator", "admin"

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"gin-quickstart/internal/dto"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/service"
 	"net/http"
@@ -26,21 +27,27 @@ func NewAuthHandler(s *service.AuthService) *AuthHandler {
 	}
 }
 
-type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-type RegisterRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Username string `json:"username" binding:"required,alphanum"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
 // GETTER
+func (h AuthHandler) GetProfile(c *gin.Context) {
+	user, err := h.s.GetLoggedUser(c)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"data":    user,
+	})
+}
+
+// SETTER
 func (h AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+	var req dto.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{
@@ -67,9 +74,8 @@ func (h AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-// SETTER
 func (h AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
+	var req dto.RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{
@@ -162,10 +168,10 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	var req struct {
-		Name   *string `json:"name"`
-		Email  *string `json:"email" binding:"omitempty,email"`
-		Avatar *string `json:"avatar"`
-		Bio    *string `json:"bio"`
+		Name   string `json:"name"`
+		Email  string `json:"email" binding:"omitempty,email"`
+		Avatar string `json:"avatar"`
+		Bio    string `json:"bio"`
 	}
 
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
@@ -177,12 +183,12 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	avatar := c.PostForm("avatar")
 	bio := c.PostForm("bio")
 
-	req.Name = &name
-	req.Email = &email
-	req.Avatar = &avatar
-	req.Bio = &bio
+	req.Name = name
+	req.Email = email
+	req.Avatar = avatar
+	req.Bio = bio
 	iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-	req.Avatar = &iconUrlStr
+	req.Avatar = iconUrlStr
 
 	wp.Submit(func() {
 		s3Client := c.MustGet("s3Client").(*s3.S3)

@@ -151,6 +151,15 @@ func (s AuthService) GetUserByEmail(email string, ctx *gin.Context) (*model.User
 	return user, nil
 }
 
+func (s AuthService) GetLoggedUser(ctx *gin.Context) (*model.User, error) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		return nil, errors.New("User not logged in")
+	}
+
+	return s.GetUserByID(uint64(userID.(uint)), ctx)
+}
+
 // SETTER
 func (s *AuthService) Register(
 	Name string,
@@ -209,10 +218,10 @@ func (s *AuthService) Logout(userID uint64, token string) error {
 
 func (s *AuthService) UpdateProfile(
 	userID uint64,
-	Name *string,
-	Email *string,
-	Avatar *string,
-	Bio *string,
+	Name string,
+	Email string,
+	Avatar string,
+	Bio string,
 	ctx *gin.Context,
 ) error {
 	user, err := s.GetUserByID(userID, ctx)
@@ -221,20 +230,20 @@ func (s *AuthService) UpdateProfile(
 		return err
 	}
 
-	if Name != nil {
-		user.Name = *Name
+	if Name != "" {
+		user.Name = Name
 	}
 
-	if Email != nil {
-		user.Email = *Email
+	if Email != "" {
+		user.Email = Email
 	}
 
-	if Avatar != nil {
-		user.Avatar = *Avatar
+	if Avatar != "" {
+		user.Avatar = Avatar
 	}
 
-	if Bio != nil {
-		user.Bio = *Bio
+	if Bio != "" {
+		user.Bio = Bio
 	}
 
 	updateError := s.r.UpdateProfile(user)

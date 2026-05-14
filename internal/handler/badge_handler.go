@@ -37,13 +37,13 @@ type CreateBadgeRequest struct {
 }
 
 type UpdateBadgeRequest struct {
-	Name            *string `json:"name,omitempty"`
-	Description     *string `json:"description,omitempty"`
-	IconUrl         *string `json:"icon_url,omitempty"`
-	CriteriaType    *string `json:"criteria_type,omitempty"`
-	CriteriaValue   *int    `json:"criteria_value,omitempty"`
-	FontColor       *string `json:"font_color,omitempty"`
-	BackgroundColor *string `json:"background_color,omitempty"`
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	IconUrl         string `json:"icon_url,omitempty"`
+	CriteriaType    string `json:"criteria_type,omitempty"`
+	CriteriaValue   int    `json:"criteria_value,omitempty"`
+	FontColor       string `json:"font_color,omitempty"`
+	BackgroundColor string `json:"background_color,omitempty"`
 }
 
 // GETTER
@@ -124,10 +124,10 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
 	ext := filepath.Ext(file.Filename)
 	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-	var iconUrl *string
+	var iconUrl string
 
 	iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-	iconUrl = &iconUrlStr
+	iconUrl = iconUrlStr
 
 	req.IconUrl = iconUrlStr
 
@@ -186,13 +186,13 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 
 		h.s.Update(
 			uint64(badge.ID),
-			&req.Name,
-			&req.Description,
+			req.Name,
+			req.Description,
 			updateReq.IconUrl,
-			&req.CriteriaType,
-			&req.CriteriaValue,
-			&req.FontColor,
-			&req.BackgroundColor,
+			req.CriteriaType,
+			req.CriteriaValue,
+			req.FontColor,
+			req.BackgroundColor,
 			c,
 		)
 
@@ -229,15 +229,15 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 	backgroundColorForm := c.PostForm("background_color")
 
 	if nameForm != "" {
-		req.Name = &nameForm
+		req.Name = nameForm
 	}
 
 	if descriptionForm != "" {
-		req.Description = &descriptionForm
+		req.Description = descriptionForm
 	}
 
 	if criteriaTypeForm != "" {
-		req.CriteriaType = &criteriaTypeForm
+		req.CriteriaType = criteriaTypeForm
 	}
 
 	if criteriaValueStr != "" {
@@ -249,15 +249,15 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 			})
 			return
 		}
-		req.CriteriaValue = &criteriaValue
+		req.CriteriaValue = criteriaValue
 	}
 
 	if fontColorForm != "" {
-		req.FontColor = &fontColorForm
+		req.FontColor = fontColorForm
 	}
 
 	if backgroundColorForm != "" {
-		req.BackgroundColor = &backgroundColorForm
+		req.BackgroundColor = backgroundColorForm
 	}
 
 	badge, err := h.s.Update(
@@ -317,10 +317,10 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 			return
 		}
 
-		var iconUrl *string
+		var iconUrl string
 
 		iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-		iconUrl = &iconUrlStr
+		iconUrl = iconUrlStr
 
 		req.IconUrl = iconUrl
 

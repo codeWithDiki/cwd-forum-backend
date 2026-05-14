@@ -170,6 +170,7 @@ func SetupRouter() *gin.Engine {
 
 			auth := v1.Group("/auth")
 
+			auth.GET("/profile", middleware.JWTMiddleware(redis), authHandler.GetProfile)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/logout", middleware.JWTMiddleware(redis), authHandler.Logout)

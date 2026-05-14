@@ -144,13 +144,13 @@ func (s *BadgeService) Create(
 
 func (s *BadgeService) Update(
 	ID uint64,
-	Name *string,
-	Description *string,
-	IconUrl *string,
-	CriteriaType *string,
-	CriteriaValue *int,
-	FontColor *string,
-	BackgroundColor *string,
+	Name string,
+	Description string,
+	IconUrl string,
+	CriteriaType string,
+	CriteriaValue int,
+	FontColor string,
+	BackgroundColor string,
 	ctx *gin.Context,
 ) (*model.Badge, error) {
 	badge, err := s.r.GetBadgeByID(ID)
@@ -163,20 +163,20 @@ func (s *BadgeService) Update(
 		return nil, errors.New("Badge not found")
 	}
 
-	if Name != nil {
-		badge.Name = *Name
+	if Name != "" {
+		badge.Name = Name
 	}
 
-	if Description != nil {
-		badge.Description = *Description
+	if Description != "" {
+		badge.Description = Description
 	}
 
-	if IconUrl != nil {
-		badge.IconUrl = *IconUrl
+	if IconUrl != "" {
+		badge.IconUrl = IconUrl
 	}
 
-	if CriteriaType != nil {
-		criteriaType, err := enum.BadgeCriteriaTypeFromString(*CriteriaType)
+	if CriteriaType != "" {
+		criteriaType, err := enum.BadgeCriteriaTypeFromString(CriteriaType)
 
 		if err == false {
 			return nil, errors.New("Criteria is not registered")
@@ -185,16 +185,16 @@ func (s *BadgeService) Update(
 		badge.CriteriaType = criteriaType.String()
 	}
 
-	if CriteriaValue != nil {
-		badge.CriteriaValue = *CriteriaValue
+	if CriteriaValue != 0 {
+		badge.CriteriaValue = CriteriaValue
 	}
 
-	if FontColor != nil {
-		badge.FontColor = *FontColor
+	if FontColor != "" {
+		badge.FontColor = FontColor
 	}
 
-	if BackgroundColor != nil {
-		badge.BackgroundColor = *BackgroundColor
+	if BackgroundColor != "" {
+		badge.BackgroundColor = BackgroundColor
 	}
 
 	err = s.r.Update(badge)
