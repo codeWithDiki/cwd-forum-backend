@@ -3,13 +3,21 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -265,6 +273,7 @@ func (s *PostService) Create(
 	Content string,
 	AuthorID uint,
 	ParentId *uint,
+	Attachments []*multipart.FileHeader,
 	ctx *gin.Context,
 ) (*model.Post, error) {
 	post := &model.Post{
@@ -272,6 +281,12 @@ func (s *PostService) Create(
 		Content:  Content,
 		AuthorID: AuthorID,
 		ParentID: ParentId,
+	}
+
+	wp, wpExists := ctx.Get("workerPool")
+
+	if !wpExists {
+		return nil, errors.New("Failed to get worker pool")
 	}
 
 	if ParentId != nil {
@@ -284,6 +299,47 @@ func (s *PostService) Create(
 		if parentPost == nil {
 			return nil, errors.New("Parent is not found!")
 		}
+	}
+
+	for _, file := range Attachments {
+
+		wp.(*workerpool.WorkerPool).Submit(func() {
+			fmt.Println("Uploading from Post")
+			ext := filepath.Ext(file.Filename)
+			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
+
+			s3client := ctx.MustGet("s3Client")
+			fileBinary, err := file.Open()
+
+			if err != nil {
+				return
+			}
+
+			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
+				Bucket: aws.String(os.Getenv("S3_BUCKET")),
+				Key:    aws.String(newFileName), // You can customize the key as needed
+				Body:   fileBinary,              // You should provide the actual file content here
+				ACL:    aws.String("public-read"),
+			})
+
+			attachment := model.Attachment{
+				PostID:     post.ID,
+				UploaderId: post.AuthorID,
+				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
+				Filename:   newFileName,
+				MimeType:   file.Header.Get("Content-Type"),
+				FileSize:   file.Size,
+			}
+
+			post.Attachments = append(post.Attachments, attachment)
+
+			s.CreateAttachment(post, &attachment, ctx)
+
+			if uErr != nil {
+				return
+			}
+
+		})
 	}
 
 	err := s.r.Create(post)
