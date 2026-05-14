@@ -8,6 +8,10 @@ import (
 )
 
 func main() {
+	if err := config.LoadEnv(); err != nil {
+		log.Fatal("failed to load env: ", err)
+	}
+
 	db, err := config.InitDB()
 	if err != nil {
 		log.Fatal("failed to connect to database: ", err)
