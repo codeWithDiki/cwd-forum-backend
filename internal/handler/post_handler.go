@@ -1,18 +1,9 @@
 package handler
 
 import (
-	"fmt"
-	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/service"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 	"strconv"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
-	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
 )
@@ -206,15 +197,6 @@ func (h *PostHandler) Create(c *gin.Context) {
 	var req CreatePostRequest
 	var Attachments []*multipart.FileHeader
 	var UserId uint
-	wp, wpExists := c.Get("fileUploadWorkerPool") // Create a worker pool with 10 workers
-
-	if wpExists == false {
-		c.JSON(500, gin.H{
-			"success": false,
-			"error":   "Failed to get worker pool",
-		})
-		return
-	}
 
 	userID, iErr := c.Get("user_id")
 
@@ -272,49 +254,9 @@ func (h *PostHandler) Create(c *gin.Context) {
 		req.Content,
 		req.AuthorID,
 		req.ParentID,
+		Attachments,
 		c,
 	)
-
-	for _, file := range Attachments {
-
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Post")
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
-
-			s3client := c.MustGet("s3Client")
-			fileBinary, err := file.Open()
-
-			if err != nil {
-				return
-			}
-
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
-
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
-
-			post.Attachments = append(post.Attachments, attachment)
-
-			h.s.CreateAttachment(post, &attachment, c)
-
-			if uErr != nil {
-				return
-			}
-
-		})
-	}
 
 	if err != nil {
 		c.JSON(500, gin.H{

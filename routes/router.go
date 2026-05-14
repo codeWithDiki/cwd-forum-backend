@@ -7,15 +7,13 @@ import (
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/internal/service"
 	"gin-quickstart/pkg/logger"
+	"gin-quickstart/pkg/worker"
 
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine {
+func SetupRouter(wp *worker.WorkerPool) *gin.Engine {
 	r := gin.Default()
-
-	wp := *workerpool.New(20)
 
 	redis := config.RedisClient
 
@@ -28,7 +26,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	r.Use(middleware.LoggerMiddleware(log))
-	r.Use(middleware.FileUploadMiddleware(&wp))
+	r.Use(middleware.FileUploadMiddleware(wp.Worker))
 
 	{
 		v1 := r.Group("/v1")
@@ -157,10 +155,10 @@ func SetupRouter() *gin.Engine {
 			badge.Use(middleware.JWTMiddleware(redis))
 
 			badge.GET("/", badgeHandler.GetAllBadges)
-			badge.POST("/", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Create)
+			badge.POST("/", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(wp.Worker), badgeHandler.Create)
 			badge.GET("/:id", badgeHandler.GetBadgeByID)
-			badge.PATCH("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Update)
-			badge.DELETE("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), badgeHandler.Delete)
+			badge.PATCH("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(wp.Worker), badgeHandler.Update)
+			badge.DELETE("/:id", middleware.IsAdminLogged(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(wp.Worker), badgeHandler.Delete)
 		}
 
 		{
@@ -190,7 +188,7 @@ func SetupRouter() *gin.Engine {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/logout", middleware.JWTMiddleware(redis), authHandler.Logout)
-			auth.PATCH("/profile", middleware.JWTMiddleware(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(&wp), authHandler.UpdateProfile)
+			auth.PATCH("/profile", middleware.JWTMiddleware(redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(wp.Worker), authHandler.UpdateProfile)
 		}
 
 	}
