@@ -40,6 +40,5 @@ func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.
 		}
 
 		c.Next()
-
 	}
 }

@@ -16,9 +16,9 @@ type UserRepository struct {
 	RedisClient *redis.Client
 }
 
-func NewUserRepository(log logger.Logger, db *gorm.DB, redis *redis.Client) *UserRepository {
+func NewUserRepository(log *logger.Logger, db *gorm.DB, redis *redis.Client) *UserRepository {
 	return &UserRepository{
-		log:         log,
+		log:         *log,
 		GormDB:      db,
 		RedisClient: redis,
 	}

@@ -20,7 +20,7 @@ type Config struct {
 
 const traceId string = "trace_id"
 
-func NewZapLogger(isProduction bool, level string, isDisableStackTrace bool) Logger {
+func NewLogger(isProduction bool, level string, isDisableStackTrace bool) *Logger {
 	// Initialize logger based on debug mode and logging level from config
 	var config zap.Config
 	if !isProduction {
@@ -52,7 +52,7 @@ func NewZapLogger(isProduction bool, level string, isDisableStackTrace bool) Log
 
 		panic("Failed to initialize logger: " + err.Error())
 	}
-	return Logger{log: log}
+	return &Logger{log: log}
 }
 
 func (l *Logger) Info(ctx context.Context, msg string, fields ...zap.Field) {

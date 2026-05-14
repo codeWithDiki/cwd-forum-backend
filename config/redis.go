@@ -5,19 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
 
-var RedisClient *redis.Client
-
 func InitRedis() (*redis.Client, error) {
-	err_env := godotenv.Load()
-
-	if err_env != nil {
-		return nil, err_env
-	}
-
 	ctx := context.Background()
 
 	address := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
