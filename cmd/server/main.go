@@ -2,8 +2,6 @@ package main
 
 import (
 	"gin-quickstart/config"
-	"gin-quickstart/database/seeders"
-	"gin-quickstart/internal/model"
 	"gin-quickstart/pkg/worker"
 	"gin-quickstart/routes"
 )
