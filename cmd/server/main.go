@@ -4,6 +4,7 @@ import (
 	"gin-quickstart/config"
 	"gin-quickstart/database/seeders"
 	"gin-quickstart/internal/model"
+	"gin-quickstart/pkg/worker"
 	"gin-quickstart/routes"
 )
 
@@ -45,7 +46,9 @@ func main() {
 
 		config.RedisClient = redis
 	}
+	worker := worker.NewWorker(20)
 
-	r := routes.SetupRouter()
+	r := routes.SetupRouter(worker)
 	r.Run(":8080")
+
 }
