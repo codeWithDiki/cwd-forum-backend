@@ -9,7 +9,11 @@ Proyek ini menggunakan `Makefile` untuk mempermudah operasional:
 | `make run` | Menjalankan server aplikasi secara langsung. |
 | `make migrate` | Menjalankan migrasi database (AutoMigrate) dan Seeder secara manual. |
 | `make build` | Melakukan kompilasi aplikasi ke dalam direktori `bin/`. |
+| `make lint` | Menjalankan pengecekan lint menggunakan `golangci-lint`. |
+| `make fix` | Menjalankan auto-fix lint yang didukung oleh `golangci-lint`. |
 | `make clean` | Menghapus file hasil build di direktori `bin/`. |
+
+Pastikan binary `golangci-lint` sudah terpasang dan tersedia di `PATH` sebelum menjalankan `make lint` atau `make fix`.
 
 ## Alur Kerja Migrasi Database
 

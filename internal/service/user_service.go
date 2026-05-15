@@ -6,6 +6,7 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 	"time"
 
@@ -15,17 +16,20 @@ import (
 )
 
 type UserService struct {
+	log  logger.Logger
 	Repo *repository.UserRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
+func NewUserService(log *logger.Logger, repo *repository.UserRepository) *UserService {
 	return &UserService{
+		log:  *log,
 		Repo: repo,
 	}
 }
 
 // GETTER
 func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
+	s.log.Debug(ctx, "Service GetAllUsers Called")
 	getStatus := s.Repo.RedisClient.Get(ctx, "users")
 
 	if getStatus.Err() == nil {
@@ -33,6 +37,7 @@ func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
 		err := json.Unmarshal([]byte(getStatus.Val()), &users)
 
 		if err != nil {
+			s.log.Error(ctx, "Get Status Error", err)
 			return nil, err
 		}
 
@@ -40,24 +45,28 @@ func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
 	}
 
 	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
+		s.log.Error(ctx, "Get Status Error", getStatus.Err())
 		return nil, getStatus.Err()
 	}
 
-	users, err := s.Repo.GetAllUsers()
+	users, err := s.Repo.GetAllUsers(ctx)
 
 	if err != nil {
+		s.log.Error(ctx, "Repo GetAllUsers Error", err)
 		return nil, err
 	}
 
 	json, err := json.Marshal(users)
 
 	if err != nil {
+		s.log.Error(ctx, "JSON Marshal Error", err)
 		return nil, err
 	}
 
 	cmdStatus := s.Repo.RedisClient.Set(ctx, "users", json, time.Hour)
 
 	if cmdStatus.Err() != nil {
+		s.log.Error(ctx, "Set Status Error", cmdStatus.Err())
 		return nil, cmdStatus.Err()
 	}
 

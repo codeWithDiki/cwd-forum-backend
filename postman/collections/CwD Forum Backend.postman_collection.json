@@ -1,0 +1,1897 @@
+{
+  "info": {
+    "_postman_id": "0d9e6185-94a4-441b-a7f3-bdda0627e6fe",
+    "name": "CwD Forum Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Create User",
+          "id": "748a1c20-0385-4be6-b97c-47e62351fdb9",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Non Admin\",\n    \"username\" : \"nonadmin\",\n    \"email\" : \"nonadmin@dikiakbarasyidiq.dev\",\n    \"password\" : \"nonadmin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/users/",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "id": "ca3731c7-2bb4-4a68-b690-8e5b0ccf0086",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg4NDE1MDMsInVzZXJfaWQiOjF9.GBHYmmqylL5XaSWwwmo96tGk8sVFJGpx5ax0Il3RixM",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/users",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "id": "aa099f7e-d5f8-439a-a259-2ce1ca1d6948",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/users/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By Username",
+          "id": "5d840e81-6a6d-4d6d-8a4c-baa56fbc8429",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/users/username/:username",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "username",
+                ":username"
+              ],
+              "variable": [
+                {
+                  "key": "username",
+                  "value": "test123"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By Email",
+          "id": "879ddf18-af9c-48f2-aff3-916b91cdd2b5",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/users/username/:email",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "username",
+                ":email"
+              ],
+              "variable": [
+                {
+                  "key": "email",
+                  "value": "test@mail.com"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "id": "b542808c-b519-469c-ba25-66e92dd25053",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg1MDA1ODMsInVzZXJfaWQiOjV9.MPWNTnLiBaf3nc9t9FZfnapxz6NZ79ZRsYFynHI9Msg",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Admin\",\n    \"username\" : \"admin\",\n    \"email\" : \"me@dikiakbarasyidiq.dev\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/users/utility/me",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "utility",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "id": "67c6dc3a-f79e-490b-baab-f9b504dbf715",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/users/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Current Logged User",
+          "id": "ac5502ff-59b3-469a-aba6-e22ea3d0314a",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg1MDA1ODMsInVzZXJfaWQiOjV9.MPWNTnLiBaf3nc9t9FZfnapxz6NZ79ZRsYFynHI9Msg",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/users/utility/me",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "utility",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Follow",
+          "id": "bb0bc4f0-4f07-4f64-8cf2-b2ebe03d7521",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/users/utility/follow/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "utility",
+                "follow",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unfollow",
+          "id": "7ff38b60-7199-4495-a716-71dbbf741738",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/users/utility/unfollow/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "users",
+                "utility",
+                "unfollow",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "f2346449-d1ee-46a3-b18c-a05dec1335e0"
+    },
+    {
+      "name": "Category",
+      "item": [
+        {
+          "name": "Create Category",
+          "id": "55a8e900-f55f-42dc-aaf5-fd70ad57b05e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzIwMTAsInVzZXJfaWQiOjF9.PqWKPdubQqZHXyKrzWD35RNwJHDBFIXOsCHyC-yAIJ8",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"parent_id\": null,\n    \"name\":\"Test Category\",\n    \"slug\": \"test-category\",\n    \"description\": \"testing Category\",\n    \"sort_order\": 0,\n    \"is_private\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/categories/",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Categories",
+          "id": "56ff0258-56d5-4d02-9c57-bb2b605069e7",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/categories",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category By ID",
+          "id": "5ba3d109-728c-4f87-a553-e26decbfd4ef",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"parent_id\": 1,\n    \"name\":\"Test Category 2\",\n    \"slug\": \"test-category-2\",\n    \"description\": \"testing Category 2\",\n    \"sort_order\": 0,\n    \"is_private\": false\n}"
+            },
+            "url": {
+              "raw": "localhost:8080/v1/categories/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category By Slug",
+          "id": "8650ce1c-6e7b-4b4c-b10c-b58eceabe737",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"parent_id\": 1,\n    \"name\":\"Test Category 2\",\n    \"slug\": \"test-category-2\",\n    \"description\": \"testing Category 2\",\n    \"sort_order\": 0,\n    \"is_private\": false\n}"
+            },
+            "url": {
+              "raw": "localhost:8080/v1/categories/slug/:slug",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories",
+                "slug",
+                ":slug"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "test-category"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "id": "f656affb-6613-48c4-af84-f966360004df",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"parent_id\": null,\n    \"name\":\"Test Category\",\n    \"slug\": \"test-category\",\n    \"description\": \"testing Category\",\n    \"sort_order\": 0,\n    \"is_private\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/categories/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "id": "afa478c5-3983-43fa-9571-72ad005ecf0e",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/categories/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "categories",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "64192480-933f-4ce1-ad20-3c93c51aee1a"
+    },
+    {
+      "name": "Thread",
+      "item": [
+        {
+          "name": "Create Thread",
+          "id": "5a3955b9-d1c3-4db2-adb0-8d97c3c309c9",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzIwMTAsInVzZXJfaWQiOjF9.PqWKPdubQqZHXyKrzWD35RNwJHDBFIXOsCHyC-yAIJ8",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "title",
+                  "value": "Lorem Ipsum",
+                  "type": "text"
+                },
+                {
+                  "key": "slug",
+                  "value": "lorem-ipsum",
+                  "type": "text"
+                },
+                {
+                  "key": "content",
+                  "value": "lorem ipsum",
+                  "type": "text"
+                },
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540",
+                    "postman-cloud:///1f14d375-e573-46b0-8e89-bed63c11fe90"
+                  ]
+                }
+              ]
+            },
+            "url": {
+              "raw": "localhost:8080/v1/threads",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Threads",
+          "id": "bd132771-b7d5-48da-a594-49892cc10df9",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread By Id",
+          "id": "cff9ff29-427e-48cc-825f-88c72b8029f2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread By Slug",
+          "id": "aac6bf62-b4a3-4b8e-b5df-6c2bef846d53",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/slug/:slug",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                "slug",
+                ":slug"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "testing-threads"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread By Category Id",
+          "id": "03f5998f-427d-4c68-a679-77a9b50e86c8",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/category/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                "category",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread By Author ID",
+          "id": "1391f794-d863-4a5c-8b48-14a16c51187f",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/author/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                "author",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread By Tag ID",
+          "id": "8fa605fa-73bd-44ad-a90b-410c70b46ffe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/tag/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                "tag",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Thread",
+          "id": "a5638e92-9c55-41ce-b08a-34015e33a901",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"category_id\" : 1,\n    \"author_id\" : 1,\n    \"title\" : \"Testing Threads\",\n    \"slug\" : \"testing-threads-88\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/threads/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Thread",
+          "id": "8f505962-b169-4784-bf8c-79c87f6b300e",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/threads/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "threads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "b05ba1a6-bd58-4c98-bb68-f6f2c078b2d2"
+    },
+    {
+      "name": "Post",
+      "item": [
+        {
+          "name": "Get All Posts",
+          "id": "bae0d960-a9b3-4975-83d3-cf46f7d39068",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/posts",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post By Id",
+          "id": "8b01d478-ffd9-4d91-b719-d22d291c3be0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post By Author ID",
+          "id": "daa3c29f-577e-43c4-99bd-956aa786440a",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/posts/author/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                "author",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Posts By Thread ID",
+          "id": "302caad2-ed79-427e-84ec-5c606025fa41",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/posts/thread/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                "thread",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Post",
+          "id": "aaccff89-7c4f-4581-af77-7476fb183885",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg4NDY5ODUsInVzZXJfaWQiOjF9.nZXGt71qD4osnj5eZIG7ytrd1irBJZbn10GmDxhlNXk",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "thread_id",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "content",
+                  "value": "Lorem Ipsum",
+                  "type": "text"
+                },
+                {
+                  "key": "attachments",
+                  "type": "file",
+                  "src": [
+                    "postman-cloud:///1f14d3ac-d56d-4d60-88df-450286d5a603"
+                  ]
+                }
+              ]
+            },
+            "url": {
+              "raw": "localhost:8080/v1/posts",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Post",
+          "id": "559d7537-5258-4e39-be1a-4c0dccec4add",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\" : \"Lorem Ipsum Dolor Sit\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Post",
+          "id": "8f68c990-b25b-4fa7-8f7c-a46f92ede6cb",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "21"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Post",
+          "id": "4ded920c-2f82-4eb8-9105-ec4475767bd1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg1MDgxMjgsInVzZXJfaWQiOjZ9.BWiBbmts3J1V0n9hvKGIXG_KmBFmfJwycOAL0NKRGBs",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"value\" : 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id/votes",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id",
+                "votes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post Votes",
+          "id": "7e283880-e6c5-49da-be86-79aeb7d0dd7e",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg1MDc2MDksInVzZXJfaWQiOjV9.UwFJlY4xCK2WVPmGdWFu7Pp5uzHr3IqZ4uAQzQ_rR70",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id/votes",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id",
+                "votes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "React Post",
+          "id": "d7443587-d333-4175-a3b4-2429b34ede60",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg1MDgxMjgsInVzZXJfaWQiOjZ9.BWiBbmts3J1V0n9hvKGIXG_KmBFmfJwycOAL0NKRGBs",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"emoji\" : 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/posts/:id/reactions",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "posts",
+                ":id",
+                "reactions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "337b1420-1574-441d-9249-f8e8d16fd5e8"
+    },
+    {
+      "name": "Tag",
+      "item": [
+        {
+          "name": "Get All Tags",
+          "id": "a8e1f409-1cb1-4429-91fc-41916da84cb9",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/tags",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tag By ID",
+          "id": "b3fc9f9e-796d-4cea-83fb-8e4c07bc95dc",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/tags/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tag By Slug",
+          "id": "3ad5169b-6b44-4fdb-8943-003204a289b2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/tags/slug/:slug",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags",
+                "slug",
+                ":slug"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "ipsum"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tag",
+          "id": "3438670c-0b40-4ce4-b050-7662647f2fba",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\" : \"Test\",\n    \"slug\" : \"test\",\n    \"color\" : \"#ffffff\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/tags",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tag",
+          "id": "599d38aa-cd2d-4174-81d8-fb6414de4d7e",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\" : \"Tag Warna Putih\",\n    \"slug\" : \"tag-warna-putih\",\n    \"color\" : \"#fffff\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/tags/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tag",
+          "id": "1611a89c-29eb-460a-ba41-9070c24b168d",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/v1/tags/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "tags",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "ef68bc99-5997-42ff-8423-8097e497ee47"
+    },
+    {
+      "name": "Attachment",
+      "item": [
+        {
+          "name": "Get All Attachments",
+          "id": "550f78d3-3e42-4bd9-9520-1cbc6d25c857",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/attachments",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "attachments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attachment By ID",
+          "id": "113a86c6-dc05-4cea-b5b0-6fda28b0ddd4",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/attachments/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "attachments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Attachment",
+          "id": "c01fb191-ffc4-4f80-9f54-00e97c33b8dc",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg2NzU4ODYsInVzZXJfaWQiOjV9.N1aytKyDqKCdZi-n7A7UkTif-D_oSwGFK3MuREHvnOA",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/attachments/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "attachments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attachments By Post ID",
+          "id": "5ff0ff78-1c1a-4270-8dcb-374cf3a59083",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg2NzU4ODYsInVzZXJfaWQiOjV9.N1aytKyDqKCdZi-n7A7UkTif-D_oSwGFK3MuREHvnOA",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/attachments/post/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "attachments",
+                "post",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "70"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "507ed5c1-9bcf-4e24-b71d-eae7e8138d5c"
+    },
+    {
+      "name": "Badge",
+      "item": [
+        {
+          "name": "Get All Badge",
+          "id": "8150f47e-34b4-43c9-83a1-d0ce0fb738ff",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3NzE1ODAsInVzZXJfaWQiOjF9.miKsSiYyMtrMh7ONfsSytsTIU2A3WJm_L-bkpaC-GoY",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/badges",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "badges"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Badge By IID",
+          "id": "070c39e2-fea5-456c-9bbe-12d979210925",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg2NzU4ODYsInVzZXJfaWQiOjV9.N1aytKyDqKCdZi-n7A7UkTif-D_oSwGFK3MuREHvnOA",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/badges/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "badges",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Badge",
+          "id": "ef0d6dd1-484a-4849-9269-19b6b2fc8118",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg2NzU4ODYsInVzZXJfaWQiOjV9.N1aytKyDqKCdZi-n7A7UkTif-D_oSwGFK3MuREHvnOA",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/badges/:id",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "badges",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Badge",
+          "id": "cc81792c-9ac2-45f9-8e49-fdf363f683a8",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Kicau Mania",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Kicau Mania",
+                  "type": "text"
+                },
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ]
+                },
+                {
+                  "key": "criteria_type",
+                  "value": "post_count",
+                  "type": "text"
+                },
+                {
+                  "key": "criteria_value",
+                  "value": "100",
+                  "type": "text"
+                },
+                {
+                  "key": "font_color",
+                  "value": "#db7972",
+                  "type": "text"
+                },
+                {
+                  "key": "background_color",
+                  "value": "#f0e5e4",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "localhost:8080/v1/badges",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "badges"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Badge",
+          "id": "84337c85-75e9-4bc7-a0ca-f38572a1870e",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Kicau Mania 2",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Kicau Mania",
+                  "type": "text"
+                },
+                {
+                  "key": "icon",
+                  "type": "file",
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ],
+                  "disabled": true
+                },
+                {
+                  "key": "criteria_type",
+                  "value": "post_count",
+                  "type": "text"
+                },
+                {
+                  "key": "criteria_value",
+                  "value": "100",
+                  "type": "text"
+                },
+                {
+                  "key": "font_color",
+                  "value": "#db7972",
+                  "type": "text"
+                },
+                {
+                  "key": "background_color",
+                  "value": "#f0e5e4",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{api_host}}/v1/badges/:id",
+              "host": [
+                "{{api_host}}"
+              ],
+              "path": [
+                "v1",
+                "badges",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "0ce13931-01e5-4da7-aea9-76ff96bb97f4"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "id": "e286a67c-0725-4206-b11b-e7950bd5f992",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\" : \"admin\",\n    \"password\" : \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/auth/login",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "id": "cc15a950-7a07-4b0f-ac31-8763a3d37e5d",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\" : \"Non Admin\",\n    \"username\" : \"nonadmin\",\n    \"email\" : \"nonadmin@mail.com\",\n    \"password\": \"nonadmin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8080/v1/auth/register",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Profile",
+          "id": "dee2f6bc-ef91-43f6-a8e1-5a4d28f442f9",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "nonadmin2",
+                  "type": "text"
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": [
+                    "postman-cloud:///1f14d375-747c-4f60-aecc-650d29fcc540"
+                  ],
+                  "disabled": true
+                },
+                {
+                  "key": "email",
+                  "value": "me@gmail.com",
+                  "type": "text"
+                },
+                {
+                  "key": "bio",
+                  "value": "Test",
+                  "type": "text",
+                  "uuid": "02444659-6fc4-41c8-85e8-4169a96abfef"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{api_host}}/v1/auth/profile",
+              "host": [
+                "{{api_host}}"
+              ],
+              "path": [
+                "v1",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "id": "bce968b0-0a13-4f43-b067-cafb69efa884",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg3Njc0NjgsInVzZXJfaWQiOjJ9.8P8wV4mCtqrSFvM8S3a5SvHekRkL0u9DaeFp7QhRaXc",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/auth/logout",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "id": "7690d59a-2a72-4820-8379-befa531a1637",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg4NDE1MDMsInVzZXJfaWQiOjF9.GBHYmmqylL5XaSWwwmo96tGk8sVFJGpx5ax0Il3RixM",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/auth/profile",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "907000ed-1a9c-48de-a696-cd44b83c5165"
+    },
+    {
+      "name": "Notification",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "id": "edad68d0-d2c5-42f8-90ee-0f520e45921e",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzg4NDE1MDMsInVzZXJfaWQiOjF9.GBHYmmqylL5XaSWwwmo96tGk8sVFJGpx5ax0Il3RixM",
+                "type": "text",
+                "uuid": "b68ea995-6472-4745-9c55-268acd676ecc"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8080/v1/notifications",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "v1",
+                "notifications"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "be7594a7-fef1-4b8f-8cdd-e5d2cd7d6b77"
+    }
+  ]
+}

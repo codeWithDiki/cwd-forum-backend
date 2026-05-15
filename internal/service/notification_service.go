@@ -6,6 +6,8 @@ import (
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/email"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type NotificationService struct {
@@ -20,11 +22,11 @@ func NewNotificationService(repo *repository.NotificationRepository) *Notificati
 	}
 }
 
-func (s NotificationService) GetNotificationsByUserID(userID uint64) ([]model.Notification, error) {
+func (s NotificationService) GetNotificationsByUserID(ctx *gin.Context, userID uint64) ([]model.Notification, error) {
 	return s.Repo.GetNotificationsByUserID(userID)
 }
 
-func (s NotificationService) GetNotificationByID(id uint64, userID uint64) (*model.Notification, error) {
+func (s NotificationService) GetNotificationByID(ctx *gin.Context, id uint64, userID uint64) (*model.Notification, error) {
 	notification, err := s.Repo.GetNotificationByID(id)
 	if err != nil {
 		return nil, err
@@ -37,7 +39,7 @@ func (s NotificationService) GetNotificationByID(id uint64, userID uint64) (*mod
 	return notification, nil
 }
 
-func (s NotificationService) CreateNotification(notification *model.Notification) (*model.Notification, error) {
+func (s NotificationService) CreateNotification(ctx *gin.Context, notification *model.Notification) (*model.Notification, error) {
 	if notification.UserId == 0 {
 		return nil, errors.New("user_id is required")
 	}
@@ -59,8 +61,8 @@ func (s NotificationService) CreateNotification(notification *model.Notification
 	return notification, nil
 }
 
-func (s NotificationService) MarkNotificationAsRead(id uint64, userID uint64) (*model.Notification, error) {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) MarkNotificationAsRead(ctx *gin.Context, id uint64, userID uint64) (*model.Notification, error) {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +84,8 @@ func (s NotificationService) MarkNotificationAsRead(id uint64, userID uint64) (*
 	return notification, nil
 }
 
-func (s NotificationService) UpdateNotificationReadState(id uint64, userID uint64, isRead bool) (*model.Notification, error) {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) UpdateNotificationReadState(ctx *gin.Context, id uint64, userID uint64, isRead bool) (*model.Notification, error) {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +107,8 @@ func (s NotificationService) UpdateNotificationReadState(id uint64, userID uint6
 	return notification, nil
 }
 
-func (s NotificationService) DeleteNotification(id uint64, userID uint64) error {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) DeleteNotification(ctx *gin.Context, id uint64, userID uint64) error {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return err
 	}

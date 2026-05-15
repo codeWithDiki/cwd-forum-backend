@@ -3,13 +3,21 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/utils"
+	"gin-quickstart/pkg/worker"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -63,7 +71,7 @@ func (s ThreadService) GetAllThreads(ctx *gin.Context) ([]model.Thread, error) {
 	return threads, nil
 }
 
-func (s ThreadService) GetThreadByID(id uint64, ctx *gin.Context) (*model.Thread, error) {
+func (s ThreadService) GetThreadByID(ctx *gin.Context, id uint64) (*model.Thread, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "thread:"+strconv.FormatUint(id, 10))
 
 	if getStatus.Err() == nil {
@@ -102,7 +110,7 @@ func (s ThreadService) GetThreadByID(id uint64, ctx *gin.Context) (*model.Thread
 	return thread, nil
 }
 
-func (s ThreadService) GetThreadBySlug(slug string, ctx *gin.Context) (*model.Thread, error) {
+func (s ThreadService) GetThreadBySlug(ctx *gin.Context, slug string) (*model.Thread, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "thread:slug:"+slug)
 
 	if getStatus.Err() == nil {
@@ -141,7 +149,7 @@ func (s ThreadService) GetThreadBySlug(slug string, ctx *gin.Context) (*model.Th
 	return thread, nil
 }
 
-func (s ThreadService) GetThreadsByCategoryID(categoryID uint, ctx *gin.Context) ([]model.Thread, error) {
+func (s ThreadService) GetThreadsByCategoryID(ctx *gin.Context, categoryID uint) ([]model.Thread, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "threads:category:"+strconv.FormatUint(uint64(categoryID), 10))
 
 	if getStatus.Err() == nil {
@@ -180,7 +188,7 @@ func (s ThreadService) GetThreadsByCategoryID(categoryID uint, ctx *gin.Context)
 	return threads, nil
 }
 
-func (s ThreadService) GetThreadsByAuthorID(authorID uint, ctx *gin.Context) ([]model.Thread, error) {
+func (s ThreadService) GetThreadsByAuthorID(ctx *gin.Context, authorID uint) ([]model.Thread, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "threads:author:"+strconv.FormatUint(uint64(authorID), 10))
 
 	if getStatus.Err() == nil {
@@ -219,7 +227,7 @@ func (s ThreadService) GetThreadsByAuthorID(authorID uint, ctx *gin.Context) ([]
 	return threads, nil
 }
 
-func (s ThreadService) GetThreadsByTagID(tagID uint, ctx *gin.Context) ([]model.Thread, error) {
+func (s ThreadService) GetThreadsByTagID(ctx *gin.Context, tagID uint) ([]model.Thread, error) {
 	getStatus := s.r.RedisClient.Get(ctx, "threads:tag:"+strconv.FormatUint(uint64(tagID), 10))
 
 	if getStatus.Err() == nil {
@@ -260,19 +268,26 @@ func (s ThreadService) GetThreadsByTagID(tagID uint, ctx *gin.Context) ([]model.
 
 // SETTER
 func (s *ThreadService) Create(
+	ctx *gin.Context,
 	CategoryID uint,
 	Title string,
 	Slug string,
 	Content string,
 	AuthorID uint,
 	TagIDs []uint,
-	ctx *gin.Context,
+	Attachments []*multipart.FileHeader,
 ) (*model.Thread, *model.Post, error) {
 	thread := &model.Thread{
 		CategoryID: CategoryID,
 		Title:      Title,
 		Slug:       Slug,
 		AuthorID:   AuthorID,
+	}
+
+	wp, wpExists := ctx.Get("workerPool")
+
+	if !wpExists {
+		return nil, nil, errors.New("Worker pool not found in context")
 	}
 
 	var userExists bool
@@ -362,10 +377,49 @@ func (s *ThreadService) Create(
 		return thread, post, delStatus.Err()
 	}
 
+	for _, file := range Attachments {
+
+		wp.(*worker.WorkerPool).Worker.Submit(func() {
+			fmt.Println("Uploading from Thread")
+			ext := filepath.Ext(file.Filename)
+			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
+
+			s3client := ctx.MustGet("s3Client")
+			fileBinary, err := file.Open()
+
+			if err != nil {
+				return
+			}
+
+			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
+				Bucket: aws.String(os.Getenv("S3_BUCKET")),
+				Key:    aws.String(newFileName), // You can customize the key as needed
+				Body:   fileBinary,              // You should provide the actual file content here
+				ACL:    aws.String("public-read"),
+			})
+
+			attachment := model.Attachment{
+				PostID:     post.ID,
+				UploaderId: post.AuthorID,
+				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
+				Filename:   newFileName,
+				MimeType:   file.Header.Get("Content-Type"),
+				FileSize:   file.Size,
+			}
+
+			s.CreatePostAttachment(ctx, post, &attachment)
+
+			if uErr != nil {
+				return
+			}
+		})
+	}
+
 	return thread, post, nil
 }
 
 func (s *ThreadService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	CategoryID *uint,
 	Title *string,
@@ -373,7 +427,6 @@ func (s *ThreadService) Update(
 	IsPinned *bool,
 	IsLocked *bool,
 	IsSolved *bool,
-	ctx *gin.Context,
 ) (*model.Thread, error) {
 	thread, err := s.r.GetThreadByID(ID)
 
@@ -434,7 +487,7 @@ func (s *ThreadService) Update(
 	return thread, nil
 }
 
-func (s *ThreadService) Delete(ID uint64, ctx *gin.Context) error {
+func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
 	thread, err := s.r.GetThreadByID(ID)
 
 	if err != nil {
@@ -472,12 +525,12 @@ func (s *ThreadService) Delete(ID uint64, ctx *gin.Context) error {
 	return nil
 }
 
-func (s *ThreadService) CreatePostAttachment(post *model.Post, attachment *model.Attachment, ctx *gin.Context) error {
+func (s *ThreadService) CreatePostAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) error {
 	s.r.RedisClient.Del(ctx, "attachments")
 	return s.r.CreatePostAttachment(post, attachment)
 }
 
-func (s *ThreadService) CanMarkAsSolution(threadID uint64, userID uint64, ctx *gin.Context) (bool, error) {
+func (s *ThreadService) CanMarkAsSolution(ctx *gin.Context, threadID uint64, userID uint64) (bool, error) {
 	thread, err := s.r.GetThreadByID(threadID)
 
 	if err != nil {

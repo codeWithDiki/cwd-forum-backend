@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"gin-quickstart/config"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/repository"
 
@@ -9,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func IsAdminLogged(redis *redis.Client) gin.HandlerFunc {
+func IsAdminLogged(userRepo repository.UserRepository, redis *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
@@ -20,18 +19,6 @@ func IsAdminLogged(redis *redis.Client) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		db, err := config.InitDB()
-
-		if err != nil {
-			c.JSON(500, gin.H{
-				"success": false,
-				"error":   "Internal Server Error",
-			})
-			c.Abort()
-			return
-		}
-
-		userRepo := repository.NewUserRepository(db, redis)
 
 		user, err := userRepo.GetUserByID(uint64(userID.(uint)))
 		if err != nil {
@@ -53,6 +40,5 @@ func IsAdminLogged(redis *redis.Client) gin.HandlerFunc {
 		}
 
 		c.Next()
-
 	}
 }

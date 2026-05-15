@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"context"
 	"gin-quickstart/internal/model"
+	"gin-quickstart/pkg/logger"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -9,22 +11,26 @@ import (
 )
 
 type UserRepository struct {
+	log         logger.Logger
 	GormDB      *gorm.DB
 	RedisClient *redis.Client
 }
 
-func NewUserRepository(db *gorm.DB, redis *redis.Client) *UserRepository {
+func NewUserRepository(log *logger.Logger, db *gorm.DB, redis *redis.Client) *UserRepository {
 	return &UserRepository{
+		log:         *log,
 		GormDB:      db,
 		RedisClient: redis,
 	}
 }
 
 // GETTER
-func (r UserRepository) GetAllUsers() ([]model.User, error) {
+func (r UserRepository) GetAllUsers(ctx context.Context) ([]model.User, error) {
+	r.log.Debug(ctx, "GetAllUser Repo Called")
 	var users []model.User
 	err := r.GormDB.Find(&users).Error
 	if err != nil {
+		r.log.Error(ctx, "GetAllUser Repo Error", err)
 		return nil, err
 	}
 	return users, nil

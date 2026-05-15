@@ -31,7 +31,7 @@ type UpdateNotificationRequest struct {
 func (h NotificationHandler) GetNotifications(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
-	notifications, err := h.Service.GetNotificationsByUserID(uint64(userID))
+	notifications, err := h.Service.GetNotificationsByUserID(c, uint64(userID))
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
@@ -49,7 +49,7 @@ func (h NotificationHandler) GetNotificationByID(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	notification, err := h.Service.GetNotificationByID(id, uint64(userID))
+	notification, err := h.Service.GetNotificationByID(c, id, uint64(userID))
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
@@ -75,7 +75,7 @@ func (h NotificationHandler) CreateNotification(c *gin.Context) {
 		IsRead:   false,
 	}
 
-	notification, err := h.Service.CreateNotification(notification)
+	notification, err := h.Service.CreateNotification(c, notification)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
@@ -93,7 +93,7 @@ func (h NotificationHandler) MarkAsRead(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	notification, err := h.Service.MarkNotificationAsRead(id, uint64(userID))
+	notification, err := h.Service.MarkNotificationAsRead(c, id, uint64(userID))
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
@@ -122,7 +122,7 @@ func (h NotificationHandler) UpdateNotification(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	notification, err := h.Service.UpdateNotificationReadState(id, uint64(userID), *req.IsRead)
+	notification, err := h.Service.UpdateNotificationReadState(c, id, uint64(userID), *req.IsRead)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
@@ -140,7 +140,7 @@ func (h NotificationHandler) DeleteNotification(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	if err := h.Service.DeleteNotification(id, uint64(userID)); err != nil {
+	if err := h.Service.DeleteNotification(c, id, uint64(userID)); err != nil {
 		c.JSON(500, gin.H{"success": false, "error": err.Error()})
 		return
 	}

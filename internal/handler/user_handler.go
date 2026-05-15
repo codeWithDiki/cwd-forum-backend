@@ -2,17 +2,20 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/logger"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
+	log     logger.Logger
 	Service *service.UserService
 }
 
-func NewUserHandler(service *service.UserService) *UserHandler {
+func NewUserHandler(log *logger.Logger, service *service.UserService) *UserHandler {
 	return &UserHandler{
+		log:     *log,
 		Service: service,
 	}
 }
@@ -37,6 +40,7 @@ type UpdateUserRequest struct {
 
 // GETTER
 func (h UserHandler) GetAllUsers(c *gin.Context) {
+	h.log.Debug(c, "GetAllUsers called")
 	users, err := h.Service.GetAllUsers(c)
 
 	if err != nil {
