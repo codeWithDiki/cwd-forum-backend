@@ -82,9 +82,9 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		post.POST("/:id/votes", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.VotePost)
 		post.GET("/:id/votes", postHandler.GetPostVotes)
 		post.POST("/:id/reactions", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.ReactPost)
-		post.PATCH("/:id", postHandler.Update)
-		post.DELETE("/:id", postHandler.Delete)
-		post.POST("/:id/mark-as-solution", middleware.JWTMiddleware(deps.Redis), postHandler.MarkAsSolution)
+		post.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.Update)
+		post.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.Delete)
+		post.POST("/:id/mark-as-solution", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.MarkAsSolution)
 
 		tagRepo := repository.NewTagRepository(deps.Logger, deps.DB, deps.Redis)
 		tagService := service.NewTagService(deps.Logger, tagRepo)

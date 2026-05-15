@@ -425,10 +425,12 @@ func (s *PostService) Update(
 		return nil, delPostsStatus.Err()
 	}
 
-	delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
+	if post.ParentID != nil {
+		delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
 
-	if delParentPostsStatus.Err() != nil {
-		return nil, delParentPostsStatus.Err()
+		if delParentPostsStatus.Err() != nil {
+			return nil, delParentPostsStatus.Err()
+		}
 	}
 
 	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(post.AuthorID), 10))
@@ -485,10 +487,12 @@ func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
 		return delPostsStatus.Err()
 	}
 
-	delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
+	if post.ParentID != nil {
+		delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
 
-	if delParentPostsStatus.Err() != nil {
-		return delParentPostsStatus.Err()
+		if delParentPostsStatus.Err() != nil {
+			return delParentPostsStatus.Err()
+		}
 	}
 
 	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(post.AuthorID), 10))
