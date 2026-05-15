@@ -1726,7 +1726,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\" : \"Non Admin\",\n    \"username\" : \"nonadmin\",\n    \"email\" : \"nonadmin@mail.com\",\n    \"password\": \"nonadmin\"\n}",
+              "raw": "{\n    \"name\" : \"Non Admin\",\n    \"username\" : \"nonadmin1_\",\n    \"email\" : \"diki.akbar1s304@gmail.com\",\n    \"password\": \"nonadmin\",\n    \"password_confirmation\" : \"nonadmin\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

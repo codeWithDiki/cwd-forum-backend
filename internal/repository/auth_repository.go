@@ -97,7 +97,7 @@ func (r *AuthRepository) GetEmailByResetToken(ctx context.Context, token string)
 	return email, nil
 }
 
-func (r *AuthRepository) Logout(userID uint64) error {
+func (r *AuthRepository) Logout(ctx context.Context, userID uint64) error {
 	var user model.User
 	err := r.GormDB.First(&user, userID).Error
 	if err != nil {

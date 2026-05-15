@@ -6,7 +6,7 @@ import (
 
 type RegisterRequest struct {
 	Name                 string `json:"name" form:"name" binding:"required"`
-	Username             string `json:"username" form:"username" binding:"required,Alphanumdash"`
+	Username             string `json:"username" form:"username" binding:"required,alphanumdash"`
 	Email                string `json:"email" form:"email" binding:"required,email"`
 	Password             string `json:"password" form:"password" binding:"required,min=6"`
 	PasswordConfirmation string `json:"password_confirmation" form:"password_confirmation" binding:"required,min=6,eqcsfield=Password"`

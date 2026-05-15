@@ -7,6 +7,8 @@ import (
 	"gin-quickstart/pkg/email"
 	"gin-quickstart/pkg/logger"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type NotificationService struct {
@@ -23,12 +25,12 @@ func NewNotificationService(log *logger.Logger, repo *repository.NotificationRep
 	}
 }
 
-func (s NotificationService) GetNotificationsByUserID(userID uint64) ([]model.Notification, error) {
-	return s.Repo.GetNotificationsByUserID(userID)
+func (s NotificationService) GetNotificationsByUserID(ctx *gin.Context, userID uint64) ([]model.Notification, error) {
+	return s.Repo.GetNotificationsByUserID(ctx, userID)
 }
 
-func (s NotificationService) GetNotificationByID(id uint64, userID uint64) (*model.Notification, error) {
-	notification, err := s.Repo.GetNotificationByID(id)
+func (s NotificationService) GetNotificationByID(ctx *gin.Context, id uint64, userID uint64) (*model.Notification, error) {
+	notification, err := s.Repo.GetNotificationByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +42,7 @@ func (s NotificationService) GetNotificationByID(id uint64, userID uint64) (*mod
 	return notification, nil
 }
 
-func (s NotificationService) CreateNotification(notification *model.Notification) (*model.Notification, error) {
+func (s NotificationService) CreateNotification(ctx *gin.Context, notification *model.Notification) (*model.Notification, error) {
 	if notification.UserId == 0 {
 		return nil, errors.New("user_id is required")
 	}
@@ -48,7 +50,7 @@ func (s NotificationService) CreateNotification(notification *model.Notification
 	notification.CreatedAt = time.Now()
 	notification.UpdatedAt = time.Now()
 
-	err := s.Repo.Create(notification)
+	err := s.Repo.Create(ctx, notification)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +64,8 @@ func (s NotificationService) CreateNotification(notification *model.Notification
 	return notification, nil
 }
 
-func (s NotificationService) MarkNotificationAsRead(id uint64, userID uint64) (*model.Notification, error) {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) MarkNotificationAsRead(ctx *gin.Context, id uint64, userID uint64) (*model.Notification, error) {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +79,7 @@ func (s NotificationService) MarkNotificationAsRead(id uint64, userID uint64) (*
 	notification.ReadAt = &now
 	notification.UpdatedAt = now
 
-	err = s.Repo.Update(notification)
+	err = s.Repo.Update(ctx, notification)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +87,8 @@ func (s NotificationService) MarkNotificationAsRead(id uint64, userID uint64) (*
 	return notification, nil
 }
 
-func (s NotificationService) UpdateNotificationReadState(id uint64, userID uint64, isRead bool) (*model.Notification, error) {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) UpdateNotificationReadState(ctx *gin.Context, id uint64, userID uint64, isRead bool) (*model.Notification, error) {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +102,7 @@ func (s NotificationService) UpdateNotificationReadState(id uint64, userID uint6
 	}
 	notification.UpdatedAt = time.Now()
 
-	err = s.Repo.Update(notification)
+	err = s.Repo.Update(ctx, notification)
 	if err != nil {
 		return nil, err
 	}
@@ -108,11 +110,11 @@ func (s NotificationService) UpdateNotificationReadState(id uint64, userID uint6
 	return notification, nil
 }
 
-func (s NotificationService) DeleteNotification(id uint64, userID uint64) error {
-	notification, err := s.GetNotificationByID(id, userID)
+func (s NotificationService) DeleteNotification(ctx *gin.Context, id uint64, userID uint64) error {
+	notification, err := s.GetNotificationByID(ctx, id, userID)
 	if err != nil {
 		return err
 	}
 
-	return s.Repo.Delete(notification)
+	return s.Repo.Delete(ctx, notification)
 }

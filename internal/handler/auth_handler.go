@@ -5,8 +5,11 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/service"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
@@ -68,6 +71,10 @@ func (h AuthHandler) Login(c *gin.Context) {
 
 func (h AuthHandler) Register(c *gin.Context) {
 	var req dto.RegisterRequest
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("alphanumdash", dto.Alphanumdash)
+	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{

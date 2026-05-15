@@ -33,11 +33,12 @@ func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
 	getStatus := s.Repo.RedisClient.Get(ctx, "users")
 
 	if getStatus.Err() == nil {
+		s.log.Debug(ctx, "Service GetAllUsers Cache Hit")
 		var users []model.User
 		err := json.Unmarshal([]byte(getStatus.Val()), &users)
 
 		if err != nil {
-			s.log.Error(ctx, "Get Status Error", err)
+			s.log.Error(ctx, "Service GetAllUsers JSON Unmarshal Error", err)
 			return nil, err
 		}
 
@@ -75,6 +76,7 @@ func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
 
 func (s UserService) GetUserByID(ctx *gin.Context, id uint64) (*model.User, error) {
 	getStatus := s.Repo.RedisClient.Get(ctx, "user:"+strconv.FormatUint(id, 10))
+	s.log.Debug(ctx, "Service GetUserByID Called")
 
 	if getStatus.Err() == nil {
 		var user model.User
