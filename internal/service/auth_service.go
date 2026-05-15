@@ -4,13 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/jwt"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -217,12 +226,12 @@ func (s *AuthService) Logout(userID uint64, token string) error {
 }
 
 func (s *AuthService) UpdateProfile(
+	ctx *gin.Context,
 	userID uint64,
 	Name string,
 	Email string,
-	Avatar string,
 	Bio string,
-	ctx *gin.Context,
+	File *multipart.FileHeader,
 ) error {
 	user, err := s.GetUserByID(userID, ctx)
 
@@ -238,12 +247,72 @@ func (s *AuthService) UpdateProfile(
 		user.Email = Email
 	}
 
-	if Avatar != "" {
-		user.Avatar = Avatar
-	}
-
 	if Bio != "" {
 		user.Bio = Bio
+	}
+
+	if File != nil {
+		wp := ctx.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
+		ext := filepath.Ext(File.Filename)
+		newFileName := fmt.Sprintf("%d_%s%s", user.ID, uuid.New().String(), ext)
+
+		user.Avatar = fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
+
+		wp.Submit(func() {
+			s3Client := ctx.MustGet("s3Client").(*s3.S3)
+
+			if user.Avatar != "" {
+				// Extract the S3 key from the Avatar URL
+				avatarUrl := user.Avatar
+				s3Key := avatarUrl[strings.LastIndex(avatarUrl, "/")+1:]
+
+				// Check if the file exists in S3
+				_, err := s3Client.HeadObject(&s3.HeadObjectInput{
+					Bucket: aws.String(os.Getenv("S3_BUCKET")),
+					Key:    aws.String(s3Key),
+				})
+
+				if err != nil {
+					fmt.Printf("Error checking S3 for avatar: %v\n", err)
+				}
+
+				// If the file exists, delete it
+				_, err = s3Client.DeleteObject(&s3.DeleteObjectInput{
+					Bucket: aws.String(os.Getenv("S3_BUCKET")),
+					Key:    aws.String(s3Key),
+				})
+
+				if err != nil {
+					fmt.Printf("Error deleting old avatar from S3: %v\n", err)
+				}
+
+			}
+
+			if File != nil {
+
+				fileBinary, err := File.Open()
+
+				if err != nil {
+					fmt.Printf("Error opening new avatar file: %v\n", err)
+					return
+				}
+				defer fileBinary.Close()
+
+				_, err = s3Client.PutObject(&s3.PutObjectInput{
+					Bucket: aws.String(os.Getenv("S3_BUCKET")),
+					Key:    aws.String(newFileName),
+					Body:   fileBinary,
+					ACL:    aws.String("public-read"),
+				})
+
+				if err != nil {
+					fmt.Printf("Error uploading new avatar to S3: %v\n", err)
+					return
+				}
+
+				fmt.Println("Test")
+			}
+		})
 	}
 
 	updateError := s.r.UpdateProfile(user)

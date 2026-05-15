@@ -2,18 +2,11 @@ package handler
 
 import (
 	"fmt"
-	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/service"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type ThreadHandler struct {
@@ -74,7 +67,7 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 		return
 	}
 
-	thread, err := h.s.GetThreadByID(id, c)
+	thread, err := h.s.GetThreadByID(c, id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -93,7 +86,7 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 func (h ThreadHandler) GetThreadBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	thread, err := h.s.GetThreadBySlug(slug, c)
+	thread, err := h.s.GetThreadBySlug(c, slug)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -121,7 +114,7 @@ func (h ThreadHandler) GetThreadsByCategoryID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByCategoryID(uint(categoryID), c)
+	threads, err := h.s.GetThreadsByCategoryID(c, uint(categoryID))
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -149,7 +142,7 @@ func (h ThreadHandler) GetThreadsByAuthorID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByAuthorID(uint(authorID), c)
+	threads, err := h.s.GetThreadsByAuthorID(c, uint(authorID))
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -177,7 +170,7 @@ func (h ThreadHandler) GetThreadsByTagID(c *gin.Context) {
 		return
 	}
 
-	threads, err := h.s.GetThreadsByTagID(uint(tagID), c)
+	threads, err := h.s.GetThreadsByTagID(c, uint(tagID))
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -243,13 +236,14 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 	}
 
 	thread, post, err := h.s.Create(
+		c,
 		req.CategoryID,
 		req.Title,
 		req.Slug,
 		req.Content,
 		req.AuthorID,
 		req.TagIDs,
-		c,
+		Attachments,
 	)
 
 	if err != nil {
@@ -258,44 +252,6 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 			"error":   err.Error(),
 		})
 		return
-	}
-
-	for _, file := range Attachments {
-
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Thread")
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
-
-			s3client := c.MustGet("s3Client")
-			fileBinary, err := file.Open()
-
-			if err != nil {
-				return
-			}
-
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
-
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
-
-			h.s.CreatePostAttachment(post, &attachment, c)
-
-			if uErr != nil {
-				return
-			}
-		})
 	}
 
 	c.JSON(200, gin.H{
@@ -331,6 +287,7 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 	}
 
 	thread, err := h.s.Update(
+		c,
 		ID,
 		req.CategoryID,
 		req.Title,
@@ -338,7 +295,6 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 		req.IsPinned,
 		req.IsLocked,
 		req.IsSolved,
-		c,
 	)
 
 	if err != nil {
@@ -369,7 +325,7 @@ func (h *ThreadHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(ID, c)
+	err = h.s.Delete(c, ID)
 
 	if err != nil {
 		c.JSON(500, gin.H{

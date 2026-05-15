@@ -1,20 +1,12 @@
 package handler
 
 import (
-	"fmt"
 	"gin-quickstart/internal/dto"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/service"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -150,101 +142,39 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 
 	user, err := h.s.GetUserByID(uint64(userID.(uint)), c)
 
-	file, err := c.FormFile("avatar")
-
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(500, gin.H{
 			"success": false,
-			"error":   "Failed to get file from request",
+			"error":   err.Error(),
 		})
 		return
 	}
+
+	file, _ := c.FormFile("avatar")
 
 	if user == nil {
 		c.JSON(404, gin.H{
 			"success": false,
 			"error":   "User not found",
 		})
+		return
 	}
 
 	var req struct {
-		Name   string `json:"name"`
-		Email  string `json:"email" binding:"omitempty,email"`
-		Avatar string `json:"avatar"`
-		Bio    string `json:"bio"`
+		Name  string `json:"name" form:"name" binding:"omitempty,min=3,max=50"`
+		Email string `json:"email" form:"email" binding:"omitempty,email"`
+		Bio   string `json:"bio" form:"bio" binding:"omitempty,max=500"`
 	}
 
-	wp := c.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
-	ext := filepath.Ext(file.Filename)
-	newFileName := fmt.Sprintf("%d_%s%s", user.ID, uuid.New().String(), ext)
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
 
-	name := c.PostForm("name")
-	email := c.PostForm("email")
-	avatar := c.PostForm("avatar")
-	bio := c.PostForm("bio")
-
-	req.Name = name
-	req.Email = email
-	req.Avatar = avatar
-	req.Bio = bio
-	iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-	req.Avatar = iconUrlStr
-
-	wp.Submit(func() {
-		s3Client := c.MustGet("s3Client").(*s3.S3)
-
-		if user.Avatar != "" {
-			// Extract the S3 key from the Avatar URL
-			avatarUrl := user.Avatar
-			s3Key := avatarUrl[strings.LastIndex(avatarUrl, "/")+1:]
-
-			// Check if the file exists in S3
-			_, err := s3Client.HeadObject(&s3.HeadObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(s3Key),
-			})
-
-			if err != nil {
-				fmt.Printf("Error checking S3 for avatar: %v\n", err)
-			}
-
-			// If the file exists, delete it
-			_, err = s3Client.DeleteObject(&s3.DeleteObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(s3Key),
-			})
-
-			if err != nil {
-				fmt.Printf("Error deleting old avatar from S3: %v\n", err)
-			}
-
-		}
-
-		if file != nil {
-
-			fileBinary, err := file.Open()
-
-			if err != nil {
-				fmt.Printf("Error opening new avatar file: %v\n", err)
-				return
-			}
-			defer fileBinary.Close()
-
-			_, err = s3Client.PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName),
-				Body:   fileBinary,
-				ACL:    aws.String("public-read"),
-			})
-
-			if err != nil {
-				fmt.Printf("Error uploading new avatar to S3: %v\n", err)
-				return
-			}
-		}
-	})
-
-	uErr := h.s.UpdateProfile(uint64(user.ID), req.Name, req.Email, req.Avatar, req.Bio, c)
+	uErr := h.s.UpdateProfile(c, uint64(user.ID), req.Name, req.Email, req.Bio, file)
 
 	if uErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
