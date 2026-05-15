@@ -5,6 +5,7 @@ import (
 	"gin-quickstart/config"
 	"gin-quickstart/internal/app"
 	"gin-quickstart/pkg/logger"
+	"gin-quickstart/pkg/utils"
 	"gin-quickstart/pkg/worker"
 	"gin-quickstart/routes"
 	"net/http"
@@ -35,6 +36,8 @@ func main() {
 	log := logger.NewLogger(isProduction, logLevel, isDisableStackTrace)
 	defer log.Sync()
 	appCtx := log.SetTraceID(context.Background())
+
+	utils.RegisterCustomValidators()
 
 	workerPool := worker.NewWorker(20)
 

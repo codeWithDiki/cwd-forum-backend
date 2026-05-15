@@ -3,6 +3,7 @@ package handler
 import (
 	"gin-quickstart/internal/service"
 	"gin-quickstart/pkg/logger"
+	"gin-quickstart/pkg/utils"
 	"net/http"
 	"strconv"
 
@@ -204,6 +205,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
+			"data":    utils.BuildValidationErrors(err, &req),
 			"error":   err.Error(),
 		})
 		return
@@ -244,6 +246,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			"success": false,
 			"error":   "user ID is required",
 		})
+		return
 	}
 
 	id = uint64(uidParam.(uint))
@@ -253,6 +256,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
+			"data":    utils.BuildValidationErrors(err, &req),
 			"error":   err.Error(),
 		})
 		return
