@@ -2,7 +2,9 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -25,23 +27,23 @@ func NewBadgeHandler(s *service.BadgeService) *BadgeHandler {
 }
 
 type CreateBadgeRequest struct {
-	Name            string `json:"name" binding:"required"`
-	Description     string `json:"description" binding:"required"`
-	IconUrl         string `json:"icon_url" binding:"required"`
-	CriteriaType    string `json:"criteria_type" binding:"required"`
-	CriteriaValue   int    `json:"criteria_value" binding:"required"`
-	FontColor       string `json:"font_color" binding:"required"`
-	BackgroundColor string `json:"background_color" binding:"required"`
+	Name            string                `form:"name" binding:"required"`
+	Description     string                `form:"description" binding:"required"`
+	CriteriaType    string                `form:"criteria_type" binding:"required"`
+	CriteriaValue   int                   `form:"criteria_value" binding:"required"`
+	FontColor       string                `form:"font_color" binding:"required"`
+	BackgroundColor string                `form:"background_color" binding:"required"`
+	Icon            *multipart.FileHeader `form:"icon" binding:"required"`
 }
 
 type UpdateBadgeRequest struct {
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	IconUrl         string `json:"icon_url,omitempty"`
-	CriteriaType    string `json:"criteria_type,omitempty"`
-	CriteriaValue   int    `json:"criteria_value,omitempty"`
-	FontColor       string `json:"font_color,omitempty"`
-	BackgroundColor string `json:"background_color,omitempty"`
+	Name            string                `form:"name"`
+	Description     string                `form:"description"`
+	CriteriaType    string                `form:"criteria_type"`
+	CriteriaValue   int                   `form:"criteria_value"`
+	FontColor       string                `form:"font_color"`
+	BackgroundColor string                `form:"background_color"`
+	Icon            *multipart.FileHeader `form:"icon"`
 }
 
 // GETTER
@@ -93,31 +95,15 @@ func (h BadgeHandler) GetBadgeByID(c *gin.Context) {
 // SETTER
 func (h *BadgeHandler) Create(c *gin.Context) {
 	var req CreateBadgeRequest
-	file, err := c.FormFile("icon")
 
-	if err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Failed to get file from request",
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   err.Error(),
 		})
 		return
 	}
-
-	req.Name = c.PostForm("name")
-	req.Description = c.PostForm("description")
-	req.CriteriaType = c.PostForm("criteria_type")
-	criteriaValueStr := c.PostForm("criteria_value")
-	criteriaValue, err := strconv.Atoi(criteriaValueStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Invalid criteria_value, must be an integer",
-		})
-		return
-	}
-	req.CriteriaValue = criteriaValue
-	req.FontColor = c.PostForm("font_color")
-	req.BackgroundColor = c.PostForm("background_color")
 
 	badge, err := h.s.Create(
 		c,
@@ -127,7 +113,7 @@ func (h *BadgeHandler) Create(c *gin.Context) {
 		req.CriteriaValue,
 		req.FontColor,
 		req.BackgroundColor,
-		file,
+		req.Icon,
 	)
 
 	if err != nil {
@@ -157,47 +143,15 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 		return
 	}
 
-	file, _ := c.FormFile("icon")
-
 	var req UpdateBadgeRequest
 
-	nameForm := c.PostForm("name")
-	descriptionForm := c.PostForm("description")
-	criteriaTypeForm := c.PostForm("criteria_type")
-	criteriaValueStr := c.PostForm("criteria_value")
-	fontColorForm := c.PostForm("font_color")
-	backgroundColorForm := c.PostForm("background_color")
-
-	if nameForm != "" {
-		req.Name = nameForm
-	}
-
-	if descriptionForm != "" {
-		req.Description = descriptionForm
-	}
-
-	if criteriaTypeForm != "" {
-		req.CriteriaType = criteriaTypeForm
-	}
-
-	if criteriaValueStr != "" {
-		criteriaValue, err := strconv.Atoi(criteriaValueStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   "Invalid criteria_value, must be an integer",
-			})
-			return
-		}
-		req.CriteriaValue = criteriaValue
-	}
-
-	if fontColorForm != "" {
-		req.FontColor = fontColorForm
-	}
-
-	if backgroundColorForm != "" {
-		req.BackgroundColor = backgroundColorForm
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   err.Error(),
+		})
+		return
 	}
 
 	badge, err := h.s.Update(
@@ -209,7 +163,7 @@ func (h *BadgeHandler) Update(c *gin.Context) {
 		req.CriteriaValue,
 		req.FontColor,
 		req.BackgroundColor,
-		file,
+		req.Icon,
 	)
 
 	if err != nil {
