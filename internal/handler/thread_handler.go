@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -21,19 +21,19 @@ func NewThreadHandler(s *service.ThreadService) *ThreadHandler {
 }
 
 type CreateThreadRequest struct {
-	CategoryID uint   `json:"category_id" binding:"required"`
-	Title      string `json:"title" binding:"required"`
-	Slug       string `json:"slug,omitempty"`
-	Content    string `json:"content" binding:"required"`
-	AuthorID   uint   `json:"author_id" binding:"required"`
-	TagIDs     []uint `json:"tag_ids,omitempty"`
+	CategoryID  uint                    `json:"category_id" binding:"required" form:"category_id"`
+	Title       string                  `json:"title" binding:"required" form:"title"`
+	Slug        string                  `json:"slug,omitempty" binding:"omitempty,slug,no_spaces" form:"slug,omitempty"`
+	Content     string                  `json:"content" binding:"required" form:"content"`
+	TagIDs      []uint                  `json:"tag_ids,omitempty" form:"tag_ids,omitempty"`
+	Attachments []*multipart.FileHeader `json:"attachments,omitempty" form:"attachments,omitempty"`
 }
 
 type UpdateThreadRequest struct {
-	CategoryID uint   `json:"category_id,omitempty"`
-	Title      string `json:"title,omitempty"`
-	Slug       string `json:"slug,omitempty"`
-	IsSolved   bool   `json:"is_solved,omitempty"`
+	CategoryID uint   `json:"category_id,omitempty" form:"category_id,omitempty"`
+	Title      string `json:"title,omitempty" form:"title,omitempty"`
+	Slug       string `json:"slug,omitempty" form:"slug,omitempty" binding:"omitempty,slug,no_spaces"`
+	IsSolved   bool   `json:"is_solved,omitempty" form:"is_solved,omitempty"`
 }
 
 // GETTER
@@ -187,51 +187,25 @@ func (h ThreadHandler) GetThreadsByTagID(c *gin.Context) {
 
 // SETTER
 func (h *ThreadHandler) Create(c *gin.Context) {
-	categoryIdParam := c.PostForm("category_id")
-	categoryID, err := strconv.ParseUint(categoryIdParam, 10, 64)
-	wp, wpExists := c.Get("fileUploadWorkerPool") // Create a worker pool with 10 workers
+	var req CreateThreadRequest
 
-	fmt.Println(wp)
+	userIdParam, userIdExists := c.Get("user_id")
 
-	if wpExists == false {
-		c.JSON(http.StatusInternalServerError, gin.H{
+	if !userIdExists {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
-			"error":   "Failed to get worker pool from context",
+			"error":   "Unauthorized",
 		})
 		return
 	}
 
-	if err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Invalid category ID",
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
-	}
-
-	req := CreateThreadRequest{
-		CategoryID: uint(categoryID),
-		Title:      c.PostForm("title"),
-		Slug:       c.PostForm("slug"),
-		Content:    c.PostForm("content"),
-		AuthorID:   c.GetUint("user_id"),
-	}
-	var Attachments []*multipart.FileHeader
-
-	form, err := c.MultipartForm()
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "Failed to parse multipart form: " + err.Error(),
-		})
-		return
-	}
-
-	files := form.File["attachments"]
-
-	for _, file := range files {
-		Attachments = append(Attachments, file)
 	}
 
 	thread, post, err := h.s.Create(
@@ -240,9 +214,9 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 		req.Title,
 		req.Slug,
 		req.Content,
-		req.AuthorID,
+		uint(userIdParam.(uint)),
 		req.TagIDs,
-		Attachments,
+		req.Attachments,
 	)
 
 	if err != nil {

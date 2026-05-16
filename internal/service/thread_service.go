@@ -7,7 +7,6 @@ import (
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/utils"
-	"gin-quickstart/pkg/worker"
 	"mime/multipart"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -128,27 +128,21 @@ func (s *ThreadService) Create(
 		AuthorID:   AuthorID,
 	}
 
-	wp, wpExists := ctx.Get("workerPool")
+	wp, wpExists := ctx.Get("fileUploadWorkerPool")
 
 	if !wpExists {
 		return nil, nil, errors.New("Worker pool not found in context")
 	}
 
-	var userExists bool
+	userExists, err := s.r.GormDB.Model(&model.User{}).Select("id").Where("id = ?", AuthorID).First(&model.User{}).RowsAffected, s.r.GormDB.Error
 
-	uErr := s.r.GormDB.
-		Model(&model.User{}).
-		Where("id = ?", AuthorID).
-		Select("count(*) > 0").
-		Row().
-		Scan(&userExists)
-
-	if uErr != nil {
-		return nil, nil, uErr
+	if err != nil {
+		s.log.Error(ctx, "Database error while checking for user existence", err, s.log.Field("AuthorID", AuthorID))
+		return nil, nil, err
 	}
 
-	if !userExists {
-		return nil, nil, errors.New("Author is not found!")
+	if userExists == 0 {
+		return nil, nil, errors.New("Author not found")
 	}
 
 	slugExists, _ := s.r.GetThreadBySlug(ctx, Slug)
@@ -157,7 +151,7 @@ func (s *ThreadService) Create(
 		thread.Slug = Slug + "-" + utils.String(5)
 	}
 
-	err := s.r.Create(ctx, thread)
+	err = s.r.Create(ctx, thread)
 
 	if err != nil {
 		return nil, nil, err
@@ -211,8 +205,8 @@ func (s *ThreadService) Create(
 
 	for _, file := range Attachments {
 
-		wp.(*worker.WorkerPool).Worker.Submit(func() {
-			fmt.Println("Uploading from Thread")
+		wp.(*workerpool.WorkerPool).Submit(func() {
+			s.log.Debug(ctx, "Uploading attachment for thread", s.log.Field("ThreadID", thread.ID), s.log.Field("Filename", file.Filename))
 			ext := filepath.Ext(file.Filename)
 			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
 

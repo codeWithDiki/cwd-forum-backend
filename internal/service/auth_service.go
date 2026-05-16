@@ -192,8 +192,6 @@ func (s *AuthService) UpdateProfile(
 		ext := filepath.Ext(File.Filename)
 		newFileName := fmt.Sprintf("%d_%s%s", user.ID, uuid.New().String(), ext)
 
-		user.Avatar = fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-
 		wp.Submit(func() {
 			s3Client := ctx.MustGet("s3Client").(*s3.S3)
 
@@ -209,7 +207,7 @@ func (s *AuthService) UpdateProfile(
 				})
 
 				if err != nil {
-					fmt.Printf("Error checking S3 for avatar: %v\n", err)
+					s.log.Error(ctx, "Failed to check if old avatar exists in S3", err)
 				}
 
 				// If the file exists, delete it
@@ -229,7 +227,7 @@ func (s *AuthService) UpdateProfile(
 				fileBinary, err := File.Open()
 
 				if err != nil {
-					fmt.Printf("Error opening new avatar file: %v\n", err)
+					s.log.Error(ctx, "Failed to open new avatar file", err)
 					return
 				}
 				defer fileBinary.Close()
@@ -242,11 +240,33 @@ func (s *AuthService) UpdateProfile(
 				})
 
 				if err != nil {
-					fmt.Printf("Error uploading new avatar to S3: %v\n", err)
+					s.log.Error(ctx, "Failed to upload new avatar to S3", err)
 					return
 				}
 
-				fmt.Println("Test")
+				user.Avatar = fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
+
+				s.log.Info(
+					ctx,
+					"Successfully uploaded new avatar to S3",
+					s.log.Field("username", user.Username),
+					s.log.Field("avatar_url", user.Avatar),
+				)
+
+				updateErr := s.r.GormDB.Save(&user).Error
+
+				if updateErr != nil {
+					s.log.Error(ctx, "Failed to update user avatar in database", updateErr)
+					return
+				}
+
+				s.log.Info(ctx, "Successfully updated user avatar in database", s.log.Field("username", user.Username))
+				s.r.RedisClient.Del(ctx, "user:all")
+				s.r.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10))
+				s.r.RedisClient.Del(ctx, "user:username:"+user.Username)
+				s.r.RedisClient.Del(ctx, "user:email:"+user.Email)
+				s.log.Info(ctx, "Cleared user cache after avatar update", s.log.Field("username", user.Username))
+
 			}
 		})
 	}

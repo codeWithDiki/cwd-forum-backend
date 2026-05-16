@@ -24,7 +24,7 @@ func NewUserHandler(log *logger.Logger, service *service.UserService) *UserHandl
 
 type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Username string `json:"username" binding:"required,alphanum"`
+	Username string `json:"username" binding:"required,username"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
 	Avatar   string `json:"avatar" binding:"omitempty,url"`
@@ -33,7 +33,7 @@ type CreateUserRequest struct {
 
 type UpdateUserRequest struct {
 	Name     string `json:"name,omitempty"`
-	Username string `json:"username,omitempty" binding:"omitempty,alphanum"`
+	Username string `json:"username,omitempty" binding:"omitempty,username"`
 	Email    string `json:"email,omitempty" binding:"omitempty,email"`
 	Password string `json:"password,omitempty" binding:"omitempty,min=8"`
 	Avatar   string `json:"avatar,omitempty" binding:"omitempty,url"`

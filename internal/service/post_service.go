@@ -125,28 +125,39 @@ func (s *PostService) Create(
 		ParentID: ParentId,
 	}
 
-	wp, wpExists := ctx.Get("workerPool")
-
-	if !wpExists {
-		return nil, errors.New("Failed to get worker pool")
-	}
+	s.log.Debug(ctx, "Creating Post", s.log.Field("ThreadID", ThreadID), s.log.Field("AuthorID", AuthorID))
 
 	if ParentId != nil {
 		parentPost, err := s.r.GetPostByID(ctx, uint64(*ParentId))
 
 		if err != nil {
+			s.log.Error(ctx, "Failed to get parent post", err, s.log.Field("ParentID", *ParentId))
 			return nil, err
 		}
 
 		if parentPost == nil {
+			s.log.Error(ctx, "Parent post not found", errors.New("Parent post not found"), s.log.Field("ParentID", *ParentId))
 			return nil, errors.New("Parent is not found!")
 		}
 	}
 
+	err := s.r.Create(ctx, post)
+
+	s.log.Debug(ctx, "Post created", s.log.Field("PostID", post.ID))
+
+	s.log.Debug(ctx, "Processing attachments for post", s.log.Field("PostID", post.ID), s.log.Field("AttachmentCount", len(Attachments)))
 	for _, file := range Attachments {
+		wp, wpExists := ctx.Get("fileUploadWorkerPool")
+		s.log.Debug(ctx, "Create Post with Attachment", s.log.Field("Filename", file.Filename))
+
+		if !wpExists {
+			s.log.Error(ctx, "Failed to get worker pool for file upload", errors.New("Worker Pool is not available"))
+			return nil, errors.New("Failed to get worker pool")
+		}
 
 		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Post")
+			s.log.Debug(ctx, "Uploading attachment to S3", s.log.Field("Filename", file.Filename))
+
 			ext := filepath.Ext(file.Filename)
 			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
 
@@ -154,6 +165,7 @@ func (s *PostService) Create(
 			fileBinary, err := file.Open()
 
 			if err != nil {
+				s.log.Error(ctx, "Failed to open attachment file", err, s.log.Field("Filename", file.Filename))
 				return
 			}
 
@@ -184,8 +196,6 @@ func (s *PostService) Create(
 		})
 	}
 
-	err := s.r.Create(ctx, post)
-
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +206,7 @@ func (s *PostService) Create(
 func (s *PostService) Update(
 	ctx *gin.Context,
 	ID uint64,
-	Content *string,
+	Content string,
 ) (*model.Post, error) {
 	post, err := s.r.GetPostByID(ctx, ID)
 
@@ -208,8 +218,8 @@ func (s *PostService) Update(
 		return nil, errors.New("Post not found")
 	}
 
-	if Content != nil {
-		post.Content = *Content
+	if Content != "" {
+		post.Content = Content
 	}
 
 	post.IsEdited = true
@@ -427,10 +437,10 @@ func (s *PostService) MarkAsSolution(ctx *gin.Context, postID uint64, userID uin
 }
 
 func (s *PostService) CreateAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) (*model.Attachment, error) {
-
 	createdAttachment, err := s.r.CreateAttachment(ctx, uint64(post.ID), attachment)
-
+	s.log.Debug(ctx, "Attachment created", s.log.Field("AttachmentID", createdAttachment.ID), s.log.Field("PostID", post.ID))
 	if err != nil {
+		s.log.Error(ctx, "Failed to create attachment record", err, s.log.Field("PostID", post.ID), s.log.Field("Filename", attachment.Filename))
 		return nil, err
 	}
 

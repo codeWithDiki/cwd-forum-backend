@@ -1,19 +1,47 @@
 package handler
 
 import (
-	"gin-quickstart/internal/dto"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
+	"mime/multipart"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
 	s *service.AuthService
+}
+
+type RegisterRequest struct {
+	Name                 string `json:"name" form:"name" binding:"required"`
+	Username             string `json:"username" form:"username" binding:"required,username"`
+	Email                string `json:"email" form:"email" binding:"required,email"`
+	Password             string `json:"password" form:"password" binding:"required,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" form:"password_confirmation" binding:"required,min=6,eqcsfield=Password"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username" form:"username" binding:"required"`
+	Password string `json:"password" form:"password" binding:"required"`
+}
+
+type UpdateProfileRequest struct {
+	Name   string                `json:"name,omitempty" form:"name,omitempty" binding:"omitempty,min=3,max=50"`
+	Email  string                `json:"email,omitempty" form:"email,omitempty" binding:"omitempty,email"`
+	Bio    string                `json:"bio,omitempty" form:"bio,omitempty" binding:"omitempty,max=500"`
+	Avatar *multipart.FileHeader `json:"avatar,omitempty" form:"avatar,omitempty" binding:"omitempty"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" form:"email" binding:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token    string `json:"token" form:"token" binding:"required"`
+	Password string `json:"password" form:"password" binding:"required,min=6"`
 }
 
 func NewAuthHandler(s *service.AuthService) *AuthHandler {
@@ -42,7 +70,7 @@ func (h AuthHandler) GetProfile(c *gin.Context) {
 
 // SETTER
 func (h AuthHandler) Login(c *gin.Context) {
-	var req dto.LoginRequest
+	var req LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -70,11 +98,7 @@ func (h AuthHandler) Login(c *gin.Context) {
 }
 
 func (h AuthHandler) Register(c *gin.Context) {
-	var req dto.RegisterRequest
-
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("alphanumdash", dto.Alphanumdash)
-	}
+	var req RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -157,31 +181,18 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	file, _ := c.FormFile("avatar")
-
-	if user == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"success": false,
-			"error":   "User not found",
-		})
-		return
-	}
-
-	var req struct {
-		Name  string `json:"name" form:"name" binding:"omitempty,min=3,max=50"`
-		Email string `json:"email" form:"email" binding:"omitempty,email"`
-		Bio   string `json:"bio" form:"bio" binding:"omitempty,max=500"`
-	}
+	var req UpdateProfileRequest
 
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
 
-	uErr := h.s.UpdateProfile(c, uint64(user.ID), req.Name, req.Email, req.Bio, file)
+	uErr := h.s.UpdateProfile(c, uint64(user.ID), req.Name, req.Email, req.Bio, req.Avatar)
 
 	if uErr != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -198,7 +209,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 }
 
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
-	var req dto.ForgotPasswordRequest
+	var req ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
@@ -214,7 +225,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 }
 
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	var req dto.ResetPasswordRequest
+	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return

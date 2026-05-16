@@ -48,10 +48,10 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		category := v1.Group("/categories")
 
 		category.GET("/", categoryHandler.GetAllCategories)
-		category.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Create)
+		category.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), categoryHandler.Create)
 		category.GET("/:id", categoryHandler.GetCategoryByID)
 		category.GET("/slug/:slug", categoryHandler.GetCategoryBySlug)
-		category.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Update)
+		category.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), categoryHandler.Update)
 		category.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Delete)
 
 		threadRepo := repository.NewThreadRepository(deps.Logger, deps.DB, deps.Redis)
@@ -61,7 +61,7 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		thread := v1.Group("/threads")
 
 		thread.GET("/", threadHandler.GetAllThreads)
-		thread.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), middleware.S3Middleware(), threadHandler.Create)
+		thread.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), threadHandler.Create)
 		thread.GET("/:id", threadHandler.GetThreadByID)
 		thread.GET("/slug/:slug", threadHandler.GetThreadBySlug)
 		thread.GET("/category/:category_id", threadHandler.GetThreadsByCategoryID)
@@ -79,7 +79,7 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		post.GET("/:id", postHandler.GetPostByID)
 		post.GET("/thread/:thread_id", postHandler.GetPostsByThreadID)
 		post.GET("/author/:author_id", postHandler.GetPostsByAuthorID)
-		post.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), middleware.S3Middleware(), postHandler.Create)
+		post.POST("/", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), middleware.S3Middleware(), middleware.FileUploadMiddleware(deps.Worker.Worker), postHandler.Create)
 		post.POST("/:id/votes", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.VotePost)
 		post.GET("/:id/votes", postHandler.GetPostVotes)
 		post.POST("/:id/reactions", middleware.JWTMiddleware(deps.Redis), middleware.IsUserBanned(deps.DB), postHandler.ReactPost)

@@ -7,7 +7,6 @@ import (
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -210,12 +209,13 @@ func (s *BadgeService) Update(
 		defer fileBinary.Close()
 
 		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Post")
+			s.log.Info(ctx, "Uploading file to S3 in background worker")
 
 			s3client := ctx.MustGet("s3Client")
 			fileBinary, err := File.Open()
 
 			if err != nil {
+				s.log.Error(ctx, "Failed to open file for S3 upload", err)
 				ctx.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
 					"error":   "Failed to open file: " + err.Error(),
@@ -233,7 +233,7 @@ func (s *BadgeService) Update(
 			})
 
 			if dErr != nil {
-				log.Printf("Failed to delete file from S3: %v", dErr)
+				s.log.Error(ctx, "Failed to delete old file from S3", dErr)
 				return
 			}
 

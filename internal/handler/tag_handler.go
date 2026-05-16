@@ -21,13 +21,13 @@ func NewTagHandler(s *service.TagService) *TagHandler {
 type CreateTagRequest struct {
 	Name  string `json:"name" binding:"required"`
 	Slug  string `json:"slug" binding:"required"`
-	Color string `json:"color" binding:"required"`
+	Color string `json:"color" binding:"required,hex_color"`
 }
 
 type UpdateTagRequest struct {
 	Name  string `json:"name,omitempty"`
 	Slug  string `json:"slug,omitempty"`
-	Color string `json:"color,omitempty"`
+	Color string `json:"color,omitempty" binding:"omitempty,hex_color"`
 }
 
 func (h TagHandler) GetAllTags(c *gin.Context) {
