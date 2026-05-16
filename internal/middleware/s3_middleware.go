@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,7 +24,7 @@ func S3Middleware() gin.HandlerFunc {
 		newSession, err := session.NewSession(s3Config)
 
 		if err != nil {
-			c.JSON(500, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"success": false,
 				"error":   "Failed to create AWS session: " + err.Error(),
 			})

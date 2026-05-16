@@ -1,140 +1,60 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
-	"strconv"
-	"time"
+	"gin-quickstart/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 type TagService struct {
-	r *repository.TagRepository
+	log *logger.Logger
+	r   *repository.TagRepository
 }
 
-func NewTagService(r *repository.TagRepository) *TagService {
+func NewTagService(log *logger.Logger, r *repository.TagRepository) *TagService {
 	return &TagService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
 // GETTER
 func (s TagService) GetAllTags(ctx *gin.Context) ([]model.Tag, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "tags")
-
-	if getStatus.Err() == nil {
-		var tags []model.Tag
-		err := json.Unmarshal([]byte(getStatus.Val()), &tags)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return tags, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	tags, err := s.r.GetAllTags()
+	tags, err := s.r.GetAllTags(ctx)
+	s.log.Debug(ctx, "GetAllTags Service", s.log.Field("Count", len(tags)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetAllTags Service Error", err)
 		return nil, err
-	}
-
-	json, err := json.Marshal(tags)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "tags", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return tags, nil
 }
 
-func (s TagService) GetTagByID(id uint64, ctx *gin.Context) (*model.Tag, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "tag:"+strconv.FormatUint(id, 10))
+func (s TagService) GetTagByID(ctx *gin.Context, id uint64) (*model.Tag, error) {
 
-	if getStatus.Err() == nil {
-		var tag model.Tag
-		err := json.Unmarshal([]byte(getStatus.Val()), &tag)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &tag, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	tag, err := s.r.GetTagByID(id)
+	tag, err := s.r.GetTagByID(ctx, id)
+	s.log.Debug(ctx, "GetTagByID Service", s.log.Field("ID", id))
 
 	if err != nil {
+		s.log.Error(ctx, "GetTagByID Service Error", err, s.log.Field("ID", id))
 		return nil, err
-	}
-
-	json, err := json.Marshal(tag)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "tag:"+strconv.FormatUint(id, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return tag, nil
 }
 
-func (s TagService) GetTagBySlug(slug string, ctx *gin.Context) (*model.Tag, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "tag:slug:"+slug)
+func (s TagService) GetTagBySlug(ctx *gin.Context, slug string) (*model.Tag, error) {
 
-	if getStatus.Err() == nil {
-		var tag model.Tag
-		err := json.Unmarshal([]byte(getStatus.Val()), &tag)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &tag, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	tag, err := s.r.GetTagBySlug(slug)
+	tag, err := s.r.GetTagBySlug(ctx, slug)
+	s.log.Debug(ctx, "GetTagBySlug Service", s.log.Field("Slug", slug))
 
 	if err != nil {
+		s.log.Error(ctx, "GetTagBySlug Service Error", err, s.log.Field("Slug", slug))
 		return nil, err
-	}
-
-	json, err := json.Marshal(tag)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "tag:slug:"+slug, json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return tag, nil
@@ -142,10 +62,10 @@ func (s TagService) GetTagBySlug(slug string, ctx *gin.Context) (*model.Tag, err
 
 // SETTER
 func (s *TagService) Create(
+	ctx *gin.Context,
 	Name string,
 	Slug string,
 	Color string,
-	ctx *gin.Context,
 ) (*model.Tag, error) {
 	tag := &model.Tag{
 		Name:  Name,
@@ -153,33 +73,27 @@ func (s *TagService) Create(
 		Color: Color,
 	}
 
-	slugExists, _ := s.r.GetTagBySlug(Slug)
+	slugExists, _ := s.r.GetTagBySlug(ctx, Slug)
 	if slugExists != nil {
 		return nil, errors.New("tag with the same slug already exists")
 	}
 
-	err := s.r.Create(tag)
+	err := s.r.Create(ctx, tag)
 	if err != nil {
 		return nil, err
-	}
-
-	delStatus := s.r.RedisClient.Del(ctx, "tags")
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
 	}
 
 	return tag, nil
 }
 
 func (s *TagService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	Name *string,
 	Slug *string,
 	Color *string,
-	ctx *gin.Context,
 ) (*model.Tag, error) {
-	tag, err := s.r.GetTagByID(ID)
+	tag, err := s.GetTagByID(ctx, ID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +106,7 @@ func (s *TagService) Update(
 		tag.Name = *Name
 	}
 	if Slug != nil {
-		slugExists, _ := s.r.GetTagBySlug(*Slug)
+		slugExists, _ := s.r.GetTagBySlug(ctx, *Slug)
 		if slugExists != nil && slugExists.ID != uint(ID) {
 			return nil, errors.New("tag with the same slug already exists")
 		}
@@ -202,22 +116,16 @@ func (s *TagService) Update(
 		tag.Color = *Color
 	}
 
-	err = s.r.Update(tag)
+	err = s.r.Update(ctx, tag)
 	if err != nil {
 		return nil, err
-	}
-
-	delStatus := s.r.RedisClient.Del(ctx, "tags", "tag:"+strconv.FormatUint(ID, 10), "tag:slug:"+tag.Slug)
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
 	}
 
 	return tag, nil
 }
 
-func (s *TagService) Delete(id uint64, ctx *gin.Context) error {
-	tag, err := s.r.GetTagByID(id)
+func (s *TagService) Delete(ctx *gin.Context, id uint64) error {
+	tag, err := s.r.GetTagByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -232,15 +140,9 @@ func (s *TagService) Delete(id uint64, ctx *gin.Context) error {
 		return pruneErr
 	}
 
-	err = s.r.Delete(id)
+	err = s.r.Delete(ctx, id)
 	if err != nil {
 		return err
-	}
-
-	delStatus := s.r.RedisClient.Del(ctx, "tags", "tag:"+strconv.FormatUint(id, 10), "tag:slug:"+tag.Slug)
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
 	}
 
 	return nil

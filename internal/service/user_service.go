@@ -1,259 +1,98 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
-	"strconv"
-	"time"
+	"gin-quickstart/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
+	log  *logger.Logger
 	Repo *repository.UserRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
+func NewUserService(log *logger.Logger, repo *repository.UserRepository) *UserService {
 	return &UserService{
+		log:  log,
 		Repo: repo,
 	}
 }
 
 // GETTER
 func (s UserService) GetAllUsers(ctx *gin.Context) ([]model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "users")
+	s.log.Debug(ctx, "Service GetAllUsers Called")
 
-	if getStatus.Err() == nil {
-		var users []model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &users)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return users, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	users, err := s.Repo.GetAllUsers()
+	users, err := s.Repo.GetAllUsers(ctx)
 
 	if err != nil {
+		s.log.Error(ctx, "Service GetAllUsers Error", err)
 		return nil, err
-	}
-
-	json, err := json.Marshal(users)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "users", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return users, nil
 }
 
-func (s UserService) GetUserByID(id uint64, ctx *gin.Context) (*model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "user:"+strconv.FormatUint(id, 10))
+func (s UserService) GetUserByID(ctx *gin.Context, id uint64) (*model.User, error) {
+	s.log.Debug(ctx, "Service GetUserByID Called", s.log.Field("UserID", id))
 
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	user, err := s.Repo.GetUserByID(id)
+	user, err := s.Repo.GetUserByID(ctx, id)
 
 	if err != nil {
+		s.log.Error(ctx, "Service GetUserByID Error", err, s.log.Field("UserID", id))
 		return nil, err
-	}
-
-	json, err := json.Marshal(user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "user:"+strconv.FormatUint(id, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return user, nil
 }
 
-func (s UserService) GetUserByUsername(username string, ctx *gin.Context) (*model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "user:username:"+username)
+func (s UserService) GetUserByUsername(ctx *gin.Context, username string) (*model.User, error) {
 
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	user, err := s.Repo.GetUserByUsername(username)
+	user, err := s.Repo.GetUserByUsername(ctx, username)
 
 	if err != nil {
+		s.log.Error(ctx, "Repo GetUserByUsername Error", err, s.log.Field("Username", username))
 		return nil, err
-	}
-
-	json, err := json.Marshal(user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "user:username:"+username, json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return user, nil
 }
 
-func (s UserService) GetUserByEmail(email string, ctx *gin.Context) (*model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "user:email:"+email)
+func (s UserService) GetUserByEmail(ctx *gin.Context, email string) (*model.User, error) {
 
-	if getStatus.Err() == nil {
-		var user model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &user)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &user, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	user, err := s.Repo.GetUserByEmail(email)
+	user, err := s.Repo.GetUserByEmail(ctx, email)
 
 	if err != nil {
+		s.log.Error(ctx, "Repo GetUserByEmail Error", err, s.log.Field("Email", email))
 		return nil, err
-	}
-
-	json, err := json.Marshal(user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "user:email:"+email, json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return user, nil
 }
 
-func (s UserService) GetFollowers(userID uint64, ctx *gin.Context) ([]model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "user:"+strconv.FormatUint(userID, 10)+":followers")
+func (s UserService) GetFollowers(ctx *gin.Context, userID uint64) ([]model.User, error) {
 
-	if getStatus.Err() == nil {
-		var followers []model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &followers)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return followers, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	followers, err := s.Repo.GetFollowers(userID)
+	followers, err := s.Repo.GetFollowers(ctx, userID)
 
 	if err != nil {
+		s.log.Error(ctx, "Repo GetFollowers Error", err, s.log.Field("UserID", userID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(followers)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "user:"+strconv.FormatUint(userID, 10)+":followers", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return followers, nil
 }
 
-func (s UserService) GetFollowing(userID uint64, ctx *gin.Context) ([]model.User, error) {
-	getStatus := s.Repo.RedisClient.Get(ctx, "user:"+strconv.FormatUint(userID, 10)+":following")
+func (s UserService) GetFollowing(ctx *gin.Context, userID uint64) ([]model.User, error) {
 
-	if getStatus.Err() == nil {
-		var following []model.User
-		err := json.Unmarshal([]byte(getStatus.Val()), &following)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return following, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	following, err := s.Repo.GetFollowing(userID)
+	following, err := s.Repo.GetFollowing(ctx, userID)
 
 	if err != nil {
+		s.log.Error(ctx, "Repo GetFollowing Error", err, s.log.Field("UserID", userID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(following)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.Repo.RedisClient.Set(ctx, "user:"+strconv.FormatUint(userID, 10)+":following", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return following, nil
@@ -261,13 +100,13 @@ func (s UserService) GetFollowing(userID uint64, ctx *gin.Context) ([]model.User
 
 // SETTER
 func (s *UserService) CreateUser(
+	ctx *gin.Context,
 	Name string,
 	Username string,
 	Email string,
 	Password string,
 	Avatar string,
 	Bio string,
-	ctx *gin.Context,
 ) (*model.User, error) {
 	user := &model.User{
 		Name:     Name,
@@ -279,34 +118,29 @@ func (s *UserService) CreateUser(
 		Role:     enum.RoleUser.String(),
 	}
 
-	usernameExists, _ := s.Repo.GetUserByUsername(user.Username)
+	usernameExists, _ := s.Repo.GetUserByUsername(ctx, user.Username)
 
 	if usernameExists != nil {
 		return nil, errors.New("Username already exists")
 	}
 
-	emailExists, _ := s.Repo.GetUserByEmail(user.Email)
+	emailExists, _ := s.Repo.GetUserByEmail(ctx, user.Email)
 
 	if emailExists != nil {
 		return nil, errors.New("Email already exists")
 	}
 
-	err := s.Repo.Create(user)
+	err := s.Repo.Create(ctx, user)
 
 	if err != nil {
 		return nil, err
-	}
-
-	delStatus := s.Repo.RedisClient.Del(ctx, "users", "user:"+strconv.FormatUint(uint64(user.ID), 10), "user:username:"+user.Username, "user:email:"+user.Email)
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
 	}
 
 	return user, nil
 }
 
 func (s *UserService) UpdateUser(
+	ctx *gin.Context,
 	ID uint64,
 	Name *string,
 	Username *string,
@@ -314,9 +148,8 @@ func (s *UserService) UpdateUser(
 	Password *string,
 	Avatar *string,
 	Bio *string,
-	ctx *gin.Context,
 ) (*model.User, error) {
-	user, err := s.Repo.GetUserByID(ID)
+	user, err := s.Repo.GetUserByID(ctx, ID)
 
 	var errorBags []error
 
@@ -329,7 +162,7 @@ func (s *UserService) UpdateUser(
 	}
 
 	if Username != nil {
-		existingUser, _ := s.Repo.GetUserByUsername(*Username)
+		existingUser, _ := s.Repo.GetUserByUsername(ctx, *Username)
 
 		if existingUser != nil && existingUser.ID != user.ID {
 			errorBags = append(errorBags, errors.New("Username already exists"))
@@ -339,7 +172,7 @@ func (s *UserService) UpdateUser(
 	}
 
 	if Email != nil {
-		existingUser, _ := s.Repo.GetUserByEmail(*Email)
+		existingUser, _ := s.Repo.GetUserByEmail(ctx, *Email)
 
 		if existingUser != nil && existingUser.ID != user.ID {
 			errorBags = append(errorBags, errors.New("Email already exists"))
@@ -371,45 +204,33 @@ func (s *UserService) UpdateUser(
 		return nil, errors.Join(errorBags...)
 	}
 
-	uErr := s.Repo.Update(user)
+	uErr := s.Repo.Update(ctx, user)
 
 	if uErr != nil {
 		return nil, uErr
 	}
 
-	delStatus := s.Repo.RedisClient.Del(ctx, "users", "user:"+strconv.FormatUint(uint64(user.ID), 10), "user:username:"+user.Username, "user:email:"+user.Email)
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
-	}
-
 	return user, nil
 }
 
-func (s *UserService) DeleteUser(ID uint64, ctx *gin.Context) error {
-	user, err := s.Repo.GetUserByID(ID)
+func (s *UserService) DeleteUser(ctx *gin.Context, ID uint64) error {
+	user, err := s.Repo.GetUserByID(ctx, ID)
 
 	if err != nil {
 		return err
 	}
 
-	dErr := s.Repo.Delete(user)
+	dErr := s.Repo.Delete(ctx, user)
 
 	if dErr != nil {
 		return dErr
 	}
 
-	delStatus := s.Repo.RedisClient.Del(ctx, "users", "user:"+strconv.FormatUint(uint64(user.ID), 10), "user:username:"+user.Username, "user:email:"+user.Email)
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
-	}
-
 	return nil
 }
 
-func (s *UserService) FollowUser(userID uint64, targetUserID uint64, ctx *gin.Context) error {
-	isFollowing, err := s.Repo.IsFollowing(userID, targetUserID)
+func (s *UserService) FollowUser(ctx *gin.Context, userID uint64, targetUserID uint64) error {
+	isFollowing, err := s.Repo.IsFollowing(ctx, userID, targetUserID)
 
 	if err != nil {
 		return err
@@ -419,23 +240,17 @@ func (s *UserService) FollowUser(userID uint64, targetUserID uint64, ctx *gin.Co
 		return errors.New("Already following this user")
 	}
 
-	fErr := s.Repo.Follow(userID, targetUserID)
+	fErr := s.Repo.Follow(ctx, userID, targetUserID)
 
 	if fErr != nil {
 		return fErr
 	}
 
-	delStatus := s.Repo.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10)+":following", "user:"+strconv.FormatUint(targetUserID, 10)+":followers")
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
-	}
-
 	return nil
 }
 
-func (s *UserService) UnfollowUser(userID uint64, targetUserID uint64, ctx *gin.Context) error {
-	isFollowing, err := s.Repo.IsFollowing(userID, targetUserID)
+func (s *UserService) UnfollowUser(ctx *gin.Context, userID uint64, targetUserID uint64) error {
+	isFollowing, err := s.Repo.IsFollowing(ctx, userID, targetUserID)
 
 	if err != nil {
 		return err
@@ -445,16 +260,10 @@ func (s *UserService) UnfollowUser(userID uint64, targetUserID uint64, ctx *gin.
 		return errors.New("Not following this user")
 	}
 
-	uErr := s.Repo.Unfollow(userID, targetUserID)
+	uErr := s.Repo.Unfollow(ctx, userID, targetUserID)
 
 	if uErr != nil {
 		return uErr
-	}
-
-	delStatus := s.Repo.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10)+":following", "user:"+strconv.FormatUint(targetUserID, 10)+":followers")
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
 	}
 
 	return nil

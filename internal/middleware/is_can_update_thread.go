@@ -4,6 +4,7 @@ import (
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/service"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +18,7 @@ func IsCanUpdateThread(db *gorm.DB, s *service.ThreadService) gin.HandlerFunc {
 		threadID, err := strconv.ParseUint(param, 10, 64)
 
 		if err != nil {
-			c.JSON(400, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"success": false,
 				"error":   "invalid thread ID",
 			})
@@ -25,10 +26,10 @@ func IsCanUpdateThread(db *gorm.DB, s *service.ThreadService) gin.HandlerFunc {
 			return
 		}
 
-		thread, err := s.GetThreadByID(threadID, c)
+		thread, err := s.GetThreadByID(c, threadID)
 
 		if err != nil {
-			c.JSON(404, gin.H{
+			c.JSON(http.StatusNotFound, gin.H{
 				"success": false,
 				"error":   "Thread not found",
 			})
@@ -38,7 +39,7 @@ func IsCanUpdateThread(db *gorm.DB, s *service.ThreadService) gin.HandlerFunc {
 
 		userID, exists := c.Get("user_id")
 		if !exists {
-			c.JSON(401, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "Unauthorized",
 			})
@@ -56,7 +57,7 @@ func IsCanUpdateThread(db *gorm.DB, s *service.ThreadService) gin.HandlerFunc {
 		}
 
 		if thread.AuthorID != userID.(uint) {
-			c.JSON(403, gin.H{
+			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"error":   "Forbidden",
 			})

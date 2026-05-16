@@ -3,30 +3,31 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"gin-quickstart/config"
 	"gin-quickstart/internal/model"
 	"log"
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 )
 
 type WSHub struct {
-	clients map[uint]*websocket.Conn
-	mutex   sync.RWMutex
+	RedisClient *redis.Client
+	clients     map[uint]*websocket.Conn
+	mutex       sync.RWMutex
 }
 
-func NewWSHub() *WSHub {
+func NewWSHub(r *redis.Client) *WSHub {
 	return &WSHub{
-		clients: make(map[uint]*websocket.Conn),
+		RedisClient: r,
+		clients:     make(map[uint]*websocket.Conn),
 	}
 }
 
 func (h *WSHub) Register(userID uint, conn *websocket.Conn) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	// Close existing connection if any to prevent memory leaks from dangling connections
 	if existingConn, ok := h.clients[userID]; ok {
 		existingConn.Close()
@@ -46,14 +47,13 @@ func (h *WSHub) Unregister(userID uint) {
 
 // StartRedisListener runs in a background goroutine, subscribing to notifications
 func (h *WSHub) StartRedisListener() {
-	if config.RedisClient == nil {
+	if h.RedisClient == nil {
 		log.Println("RedisClient is nil, cannot start WS Redis Listener")
 		return
 	}
 
 	ctx := context.Background()
-	pubsub := config.RedisClient.Subscribe(ctx, "realtime:notifications")
-	defer pubsub.Close()
+	pubsub := h.RedisClient.Subscribe(ctx, "realtime:notifications")
 
 	ch := pubsub.Channel()
 	log.Println("WebSocket Redis Listener started. Listening on 'realtime:notifications'")

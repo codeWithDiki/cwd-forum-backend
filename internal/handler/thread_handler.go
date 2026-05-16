@@ -2,18 +2,12 @@ package handler
 
 import (
 	"fmt"
-	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/service"
 	"mime/multipart"
-	"os"
-	"path/filepath"
+	"net/http"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type ThreadHandler struct {
@@ -49,14 +43,14 @@ func (h ThreadHandler) GetAllThreads(c *gin.Context) {
 	threads, err := h.s.GetAllThreads(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threads,
 	})
@@ -67,24 +61,24 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid thread ID",
 		})
 		return
 	}
 
-	thread, err := h.s.GetThreadByID(id, c)
+	thread, err := h.s.GetThreadByID(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    thread,
 	})
@@ -93,17 +87,17 @@ func (h ThreadHandler) GetThreadByID(c *gin.Context) {
 func (h ThreadHandler) GetThreadBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	thread, err := h.s.GetThreadBySlug(slug, c)
+	thread, err := h.s.GetThreadBySlug(c, slug)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    thread,
 	})
@@ -114,24 +108,24 @@ func (h ThreadHandler) GetThreadsByCategoryID(c *gin.Context) {
 	categoryID, err := strconv.ParseUint(categoryIDParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid category ID",
 		})
 		return
 	}
 
-	threads, err := h.s.GetThreadsByCategoryID(uint(categoryID), c)
+	threads, err := h.s.GetThreadsByCategoryID(c, uint(categoryID))
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threads,
 	})
@@ -142,24 +136,24 @@ func (h ThreadHandler) GetThreadsByAuthorID(c *gin.Context) {
 	authorID, err := strconv.ParseUint(authorIDParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid author ID",
 		})
 		return
 	}
 
-	threads, err := h.s.GetThreadsByAuthorID(uint(authorID), c)
+	threads, err := h.s.GetThreadsByAuthorID(c, uint(authorID))
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threads,
 	})
@@ -170,24 +164,24 @@ func (h ThreadHandler) GetThreadsByTagID(c *gin.Context) {
 	tagID, err := strconv.ParseUint(tagIDParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid tag ID",
 		})
 		return
 	}
 
-	threads, err := h.s.GetThreadsByTagID(uint(tagID), c)
+	threads, err := h.s.GetThreadsByTagID(c, uint(tagID))
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    threads,
 	})
@@ -202,7 +196,7 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 	fmt.Println(wp)
 
 	if wpExists == false {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   "Failed to get worker pool from context",
 		})
@@ -210,7 +204,7 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid category ID",
 		})
@@ -229,7 +223,7 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 	form, err := c.MultipartForm()
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Failed to parse multipart form: " + err.Error(),
 		})
@@ -243,62 +237,25 @@ func (h *ThreadHandler) Create(c *gin.Context) {
 	}
 
 	thread, post, err := h.s.Create(
+		c,
 		req.CategoryID,
 		req.Title,
 		req.Slug,
 		req.Content,
 		req.AuthorID,
 		req.TagIDs,
-		c,
+		Attachments,
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	for _, file := range Attachments {
-
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Thread")
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
-
-			s3client := c.MustGet("s3Client")
-			fileBinary, err := file.Open()
-
-			if err != nil {
-				return
-			}
-
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
-
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
-
-			h.s.CreatePostAttachment(post, &attachment, c)
-
-			if uErr != nil {
-				return
-			}
-		})
-	}
-
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Thread created successfully",
 		"data": gin.H{
@@ -315,7 +272,7 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 	ID, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid thread ID",
 		})
@@ -323,7 +280,7 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -331,6 +288,7 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 	}
 
 	thread, err := h.s.Update(
+		c,
 		ID,
 		req.CategoryID,
 		req.Title,
@@ -338,18 +296,17 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 		req.IsPinned,
 		req.IsLocked,
 		req.IsSolved,
-		c,
 	)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Thread updated successfully",
 		"data":    thread,
@@ -362,24 +319,24 @@ func (h *ThreadHandler) Delete(c *gin.Context) {
 	ID, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid thread ID",
 		})
 		return
 	}
 
-	err = h.s.Delete(ID, c)
+	err = h.s.Delete(c, ID)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Thread deleted successfully",
 	})

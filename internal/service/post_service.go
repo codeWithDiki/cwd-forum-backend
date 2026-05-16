@@ -1,267 +1,109 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
+	"gin-quickstart/pkg/logger"
 	"mime/multipart"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type PostService struct {
-	r *repository.PostRepository
+	log *logger.Logger
+	r   *repository.PostRepository
 }
 
-func NewPostService(r *repository.PostRepository) *PostService {
+func NewPostService(log *logger.Logger, r *repository.PostRepository) *PostService {
 	return &PostService{
-		r: r,
+		log: log,
+		r:   r,
 	}
 }
 
 // GETTER
 func (s PostService) GetAllPosts(ctx *gin.Context) ([]model.Post, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "posts")
-
-	if getStatus.Err() == nil {
-		var posts []model.Post
-		err := json.Unmarshal([]byte(getStatus.Val()), &posts)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return posts, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	posts, err := s.r.GetAllPosts()
+	posts, err := s.r.GetAllPosts(ctx)
+	s.log.Debug(ctx, "GetAllPosts Service", s.log.Field("Count", len(posts)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetAllPosts Service Error", err)
 		return nil, err
-	}
-
-	json, err := json.Marshal(posts)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "posts", json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return posts, nil
 }
 
-func (s PostService) GetPostByID(id uint64, ctx *gin.Context) (*model.Post, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "post:id:"+strconv.FormatUint(id, 10))
+func (s PostService) GetPostByID(ctx *gin.Context, id uint64) (*model.Post, error) {
 
-	if getStatus.Err() == nil {
-		var post model.Post
-		err := json.Unmarshal([]byte(getStatus.Val()), &post)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &post, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	post, err := s.r.GetPostByID(id)
+	post, err := s.r.GetPostByID(ctx, id)
+	s.log.Debug(ctx, "GetPostByID Service", s.log.Field("PostID", id))
 
 	if err != nil {
+		s.log.Error(ctx, "GetPostByID Service Error", err, s.log.Field("PostID", id))
 		return nil, err
-	}
-
-	json, err := json.Marshal(post)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "post:id:"+strconv.FormatUint(id, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return post, nil
 }
 
-func (s PostService) GetPostsByThreadID(threadID uint64, ctx *gin.Context) ([]model.Post, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "posts:thread_id:"+strconv.FormatUint(threadID, 10))
+func (s PostService) GetPostsByThreadID(ctx *gin.Context, threadID uint64) ([]model.Post, error) {
 
-	if getStatus.Err() == nil {
-		var posts []model.Post
-		err := json.Unmarshal([]byte(getStatus.Val()), &posts)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return posts, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	posts, err := s.r.GetPostsByThreadID(threadID)
+	posts, err := s.r.GetPostsByThreadID(ctx, threadID)
+	s.log.Debug(ctx, "GetPostsByThreadID Service", s.log.Field("ThreadID", threadID), s.log.Field("Count", len(posts)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetPostsByThreadID Service Error", err, s.log.Field("ThreadID", threadID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(posts)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "posts:thread_id:"+strconv.FormatUint(threadID, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return posts, nil
 }
 
-func (s PostService) GetPostsByAuthorID(authorID uint64, ctx *gin.Context) ([]model.Post, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "posts:author_id:"+strconv.FormatUint(authorID, 10))
+func (s PostService) GetPostsByAuthorID(ctx *gin.Context, authorID uint64) ([]model.Post, error) {
 
-	if getStatus.Err() == nil {
-		var posts []model.Post
-		err := json.Unmarshal([]byte(getStatus.Val()), &posts)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return posts, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	posts, err := s.r.GetPostsByAuthorID(authorID)
+	posts, err := s.r.GetPostsByAuthorID(ctx, authorID)
+	s.log.Debug(ctx, "GetPostsByAuthorID Service", s.log.Field("AuthorID", authorID), s.log.Field("Count", len(posts)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetPostsByAuthorID Service Error", err, s.log.Field("AuthorID", authorID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(posts)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "posts:author_id:"+strconv.FormatUint(authorID, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return posts, nil
 }
 
-func (s PostService) GetPostsByParentID(parentID uint64, ctx *gin.Context) ([]model.Post, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "post:parent:"+strconv.FormatUint(parentID, 10))
+func (s PostService) GetPostsByParentID(ctx *gin.Context, parentID uint64) ([]model.Post, error) {
 
-	if getStatus.Err() == nil {
-		var posts []model.Post
-		err := json.Unmarshal([]byte(getStatus.Val()), &posts)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return posts, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	posts, err := s.r.GetPostsByParentID(parentID)
+	posts, err := s.r.GetPostsByParentID(ctx, parentID)
+	s.log.Debug(ctx, "GetPostsByParentID Service", s.log.Field("ParentID", parentID), s.log.Field("Count", len(posts)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetPostsByParentID Service Error", err, s.log.Field("ParentID", parentID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(posts)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "post:parent:"+strconv.FormatUint(parentID, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return posts, nil
 }
 
-func (s PostService) GetPostVotes(postID uint64, ctx *gin.Context) ([]model.Vote, error) {
-	getStatus := s.r.RedisClient.Get(ctx, "post:votes:"+strconv.FormatUint(postID, 10))
+func (s PostService) GetPostVotes(ctx *gin.Context, postID uint64) ([]model.Vote, error) {
 
-	if getStatus.Err() == nil {
-		var votes []model.Vote
-		err := json.Unmarshal([]byte(getStatus.Val()), &votes)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return votes, nil
-	}
-
-	if getStatus.Err() != nil && getStatus.Err() != redis.Nil {
-		return nil, getStatus.Err()
-	}
-
-	votes, err := s.r.GetPostVotes(postID)
+	votes, err := s.r.GetPostVotes(ctx, postID)
+	s.log.Debug(ctx, "GetPostVotes Service", s.log.Field("PostID", postID), s.log.Field("Count", len(votes)))
 
 	if err != nil {
+		s.log.Error(ctx, "GetPostVotes Service Error", err, s.log.Field("PostID", postID))
 		return nil, err
-	}
-
-	json, err := json.Marshal(votes)
-
-	if err != nil {
-		return nil, err
-	}
-
-	cmdStatus := s.r.RedisClient.Set(ctx, "post:votes:"+strconv.FormatUint(postID, 10), json, time.Hour)
-
-	if cmdStatus.Err() != nil {
-		return nil, cmdStatus.Err()
 	}
 
 	return votes, nil
@@ -269,12 +111,12 @@ func (s PostService) GetPostVotes(postID uint64, ctx *gin.Context) ([]model.Vote
 
 // SETTER
 func (s *PostService) Create(
+	ctx *gin.Context,
 	ThreadID uint,
 	Content string,
 	AuthorID uint,
 	ParentId *uint,
 	Attachments []*multipart.FileHeader,
-	ctx *gin.Context,
 ) (*model.Post, error) {
 	post := &model.Post{
 		ThreadID: ThreadID,
@@ -290,7 +132,7 @@ func (s *PostService) Create(
 	}
 
 	if ParentId != nil {
-		parentPost, err := s.r.GetPostByID(uint64(*ParentId))
+		parentPost, err := s.r.GetPostByID(ctx, uint64(*ParentId))
 
 		if err != nil {
 			return nil, err
@@ -333,7 +175,7 @@ func (s *PostService) Create(
 
 			post.Attachments = append(post.Attachments, attachment)
 
-			s.CreateAttachment(post, &attachment, ctx)
+			s.CreateAttachment(ctx, post, &attachment)
 
 			if uErr != nil {
 				return
@@ -342,53 +184,21 @@ func (s *PostService) Create(
 		})
 	}
 
-	err := s.r.Create(post)
+	err := s.r.Create(ctx, post)
 
 	if err != nil {
 		return nil, err
-	}
-
-	delParentStatus := s.r.RedisClient.Del(ctx, "post:id:"+strconv.FormatUint(uint64(post.ID), 10))
-
-	if delParentStatus.Err() != nil {
-		return nil, delParentStatus.Err()
-	}
-
-	delPostsStatus := s.r.RedisClient.Del(ctx, "posts")
-
-	if delPostsStatus.Err() != nil {
-		return nil, delPostsStatus.Err()
-	}
-
-	if ParentId != nil {
-		delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*ParentId), 10))
-
-		if delParentPostsStatus.Err() != nil {
-			return nil, delParentPostsStatus.Err()
-		}
-	}
-
-	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(AuthorID), 10))
-
-	if delAuthorStatus.Err() != nil {
-		return nil, delAuthorStatus.Err()
-	}
-
-	delThreadStatus := s.r.RedisClient.Del(ctx, "posts:thread_id:"+strconv.FormatUint(uint64(ThreadID), 10))
-
-	if delThreadStatus.Err() != nil {
-		return nil, delThreadStatus.Err()
 	}
 
 	return post, nil
 }
 
 func (s *PostService) Update(
+	ctx *gin.Context,
 	ID uint64,
 	Content *string,
-	ctx *gin.Context,
 ) (*model.Post, error) {
-	post, err := s.r.GetPostByID(ID)
+	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
 		return nil, err
@@ -404,47 +214,17 @@ func (s *PostService) Update(
 
 	post.IsEdited = true
 
-	err = s.r.Update(post)
+	err = s.r.Update(ctx, post)
 
 	if err != nil {
 		return nil, err
 	}
 
-	delParentStatus := s.r.RedisClient.Del(ctx, "post:id:"+strconv.FormatUint(uint64(post.ID), 10))
-
-	if delParentStatus.Err() != nil {
-		return nil, delParentStatus.Err()
-	}
-
-	delPostsStatus := s.r.RedisClient.Del(ctx, "posts")
-
-	if delPostsStatus.Err() != nil {
-		return nil, delPostsStatus.Err()
-	}
-
-	delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
-
-	if delParentPostsStatus.Err() != nil {
-		return nil, delParentPostsStatus.Err()
-	}
-
-	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(post.AuthorID), 10))
-
-	if delAuthorStatus.Err() != nil {
-		return nil, delAuthorStatus.Err()
-	}
-
-	delThreadStatus := s.r.RedisClient.Del(ctx, "posts:thread_id:"+strconv.FormatUint(uint64(post.ThreadID), 10))
-
-	if delThreadStatus.Err() != nil {
-		return nil, delThreadStatus.Err()
-	}
-
 	return post, nil
 }
 
-func (s *PostService) Delete(ID uint64, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(ID)
+func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
+	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
 		return err
@@ -457,54 +237,24 @@ func (s *PostService) Delete(ID uint64, ctx *gin.Context) error {
 	replies := post.Posts
 
 	for _, reply := range replies {
-		err = s.Delete(uint64(reply.ID), ctx)
+		err = s.Delete(ctx, uint64(reply.ID))
 
 		if err != nil {
 			return err
 		}
 	}
 
-	delErr := s.r.Delete(post)
+	err = s.r.Delete(ctx, post)
 
-	if delErr != nil {
-		return delErr
-	}
-
-	delParentStatus := s.r.RedisClient.Del(ctx, "post:id:"+strconv.FormatUint(uint64(post.ID), 10))
-
-	if delParentStatus.Err() != nil {
-		return delParentStatus.Err()
-	}
-
-	delPostsStatus := s.r.RedisClient.Del(ctx, "posts")
-
-	if delPostsStatus.Err() != nil {
-		return delPostsStatus.Err()
-	}
-
-	delParentPostsStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(*post.ParentID), 10))
-
-	if delParentPostsStatus.Err() != nil {
-		return delParentPostsStatus.Err()
-	}
-
-	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(post.AuthorID), 10))
-
-	if delAuthorStatus.Err() != nil {
-		return delAuthorStatus.Err()
-	}
-
-	delThreadStatus := s.r.RedisClient.Del(ctx, "posts:thread_id:"+strconv.FormatUint(uint64(post.ThreadID), 10))
-
-	if delThreadStatus.Err() != nil {
-		return delThreadStatus.Err()
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (s *PostService) Vote(postID uint64, userID uint64, value int, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(postID)
+func (s *PostService) Vote(ctx *gin.Context, postID uint64, userID uint64, value int) error {
+	post, err := s.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -557,23 +307,17 @@ func (s *PostService) Vote(postID uint64, userID uint64, value int, ctx *gin.Con
 		return uErr
 	}
 
-	delStatus := s.r.RedisClient.Del(ctx, "post:votes:"+strconv.FormatUint(postID, 10))
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
-	}
-
 	return nil
 }
 
-func (s *PostService) React(postID uint64, userID uint64, emoji int, ctx *gin.Context) error {
+func (s *PostService) React(ctx *gin.Context, postID uint64, userID uint64, emoji int) error {
 	emojiValue, eErr := enum.EmojiFromInt(emoji)
 
 	if eErr != true {
 		return errors.New("Emoji is not registered")
 	}
 
-	post, err := s.r.GetPostByID(postID)
+	post, err := s.r.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -620,17 +364,11 @@ func (s *PostService) React(postID uint64, userID uint64, emoji int, ctx *gin.Co
 		return err
 	}
 
-	delStatus := s.r.RedisClient.Del(ctx, "post:reactions:"+strconv.FormatUint(postID, 10))
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
-	}
-
 	return nil
 }
 
-func (s *PostService) MarkAsSolution(postID uint64, userID uint64, ctx *gin.Context) error {
-	post, err := s.r.GetPostByID(postID)
+func (s *PostService) MarkAsSolution(ctx *gin.Context, postID uint64, userID uint64) error {
+	post, err := s.r.GetPostByID(ctx, postID)
 
 	if err != nil {
 		return err
@@ -685,39 +423,15 @@ func (s *PostService) MarkAsSolution(postID uint64, userID uint64, ctx *gin.Cont
 		return uErr
 	}
 
-	delStatus := s.r.RedisClient.Del(ctx, "post:parent:"+strconv.FormatUint(uint64(post.ID), 10))
-
-	if delStatus.Err() != nil {
-		return delStatus.Err()
-	}
-
-	delAuthorStatus := s.r.RedisClient.Del(ctx, "posts:author_id:"+strconv.FormatUint(uint64(post.AuthorID), 10))
-
-	if delAuthorStatus.Err() != nil {
-		return delAuthorStatus.Err()
-	}
-
-	delThreadStatus := s.r.RedisClient.Del(ctx, "posts:thread_id:"+strconv.FormatUint(uint64(post.ThreadID), 10))
-
-	if delThreadStatus.Err() != nil {
-		return delThreadStatus.Err()
-	}
-
 	return nil
 }
 
-func (s *PostService) CreateAttachment(post *model.Post, attachment *model.Attachment, ctx *gin.Context) (*model.Attachment, error) {
+func (s *PostService) CreateAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) (*model.Attachment, error) {
 
-	createdAttachment, err := s.r.CreateAttachment(uint64(post.ID), attachment)
+	createdAttachment, err := s.r.CreateAttachment(ctx, uint64(post.ID), attachment)
 
 	if err != nil {
 		return nil, err
-	}
-
-	delStatus := s.r.RedisClient.Del(ctx, "attachments:post:"+strconv.FormatUint(uint64(post.ID), 10))
-
-	if delStatus.Err() != nil {
-		return nil, delStatus.Err()
 	}
 
 	return createdAttachment, nil

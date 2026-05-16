@@ -8,7 +8,8 @@ import (
 
 func LoggerMiddleware(logger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("logger", logger)
+		ctx := logger.SetTraceID(c.Request.Context())
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}

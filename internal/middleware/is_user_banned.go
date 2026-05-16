@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"gin-quickstart/internal/model"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -11,7 +12,7 @@ func IsUserBanned(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("user_id")
 		if !exists {
-			c.JSON(401, gin.H{
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"error":   "Unauthorized",
 			})
@@ -24,7 +25,7 @@ func IsUserBanned(db *gorm.DB) gin.HandlerFunc {
 		db.Where("id = ?", userID).Model(&userModel).First(&userModel)
 
 		if userModel.IsBanned {
-			c.JSON(403, gin.H{
+			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"error":   "Your account has been banned",
 			})

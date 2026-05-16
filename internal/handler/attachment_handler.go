@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -22,14 +23,14 @@ func (h AttachmentHandler) GetAllAttachments(c *gin.Context) {
 	attachments, err := h.s.GetAllAttachments(c)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    attachments,
 	})
@@ -40,24 +41,24 @@ func (h AttachmentHandler) GetAttachmentByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid attachment ID",
 		})
 		return
 	}
 
-	attachment, err := h.s.GetAttachmentByID(id, c)
+	attachment, err := h.s.GetAttachmentByID(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    attachment,
 	})
@@ -68,24 +69,24 @@ func (h AttachmentHandler) GetAttachmentsByPostID(c *gin.Context) {
 	postID, err := strconv.ParseUint(postIDParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid post ID",
 		})
 		return
 	}
 
-	attachments, err := h.s.GetAttachmentsByPostID(postID, c)
+	attachments, err := h.s.GetAttachmentsByPostID(c, postID)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    attachments,
 	})
@@ -97,17 +98,17 @@ func (h AttachmentHandler) DeleteAttachment(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 
 	if err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   "Invalid attachment ID",
 		})
 		return
 	}
 
-	attachment, err := h.s.GetAttachmentByID(id, c)
+	attachment, err := h.s.GetAttachmentByID(c, id)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
@@ -115,24 +116,24 @@ func (h AttachmentHandler) DeleteAttachment(c *gin.Context) {
 	}
 
 	if attachment == nil {
-		c.JSON(404, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
 			"error":   "Attachment not found",
 		})
 		return
 	}
 
-	err = h.s.Delete(attachment, c)
+	err = h.s.Delete(c, attachment)
 
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
 			"error":   err.Error(),
 		})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Attachment deleted successfully",
 	})
