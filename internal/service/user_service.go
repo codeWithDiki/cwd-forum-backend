@@ -142,12 +142,12 @@ func (s *UserService) CreateUser(
 func (s *UserService) UpdateUser(
 	ctx *gin.Context,
 	ID uint64,
-	Name *string,
-	Username *string,
-	Email *string,
-	Password *string,
-	Avatar *string,
-	Bio *string,
+	Name string,
+	Username string,
+	Email string,
+	Password string,
+	Avatar string,
+	Bio string,
 ) (*model.User, error) {
 	user, err := s.Repo.GetUserByID(ctx, ID)
 
@@ -157,32 +157,32 @@ func (s *UserService) UpdateUser(
 		return nil, err
 	}
 
-	if Name != nil {
-		user.Name = *Name
+	if Name != "" {
+		user.Name = Name
 	}
 
-	if Username != nil {
-		existingUser, _ := s.Repo.GetUserByUsername(ctx, *Username)
+	if Username != "" {
+		existingUser, _ := s.Repo.GetUserByUsername(ctx, Username)
 
 		if existingUser != nil && existingUser.ID != user.ID {
 			errorBags = append(errorBags, errors.New("Username already exists"))
 		}
 
-		user.Username = *Username
+		user.Username = Username
 	}
 
-	if Email != nil {
-		existingUser, _ := s.Repo.GetUserByEmail(ctx, *Email)
+	if Email != "" {
+		existingUser, _ := s.Repo.GetUserByEmail(ctx, Email)
 
 		if existingUser != nil && existingUser.ID != user.ID {
 			errorBags = append(errorBags, errors.New("Email already exists"))
 		}
 
-		user.Email = *Email
+		user.Email = Email
 	}
 
-	if Password != nil {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*Password), bcrypt.DefaultCost)
+	if Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(Password), bcrypt.DefaultCost)
 
 		if err != nil {
 			errorBags = append(errorBags, err)
@@ -192,12 +192,12 @@ func (s *UserService) UpdateUser(
 
 	}
 
-	if Avatar != nil {
-		user.Avatar = *Avatar
+	if Avatar != "" {
+		user.Avatar = Avatar
 	}
 
-	if Bio != nil {
-		user.Bio = *Bio
+	if Bio != "" {
+		user.Bio = Bio
 	}
 
 	if errorBags != nil {

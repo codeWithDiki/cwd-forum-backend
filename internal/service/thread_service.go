@@ -253,12 +253,10 @@ func (s *ThreadService) Create(
 func (s *ThreadService) Update(
 	ctx *gin.Context,
 	ID uint64,
-	CategoryID *uint,
-	Title *string,
-	Slug *string,
-	IsPinned *bool,
-	IsLocked *bool,
-	IsSolved *bool,
+	CategoryID uint,
+	Title string,
+	Slug string,
+	IsSolved bool,
 ) (*model.Thread, error) {
 	thread, err := s.GetThreadByID(ctx, ID)
 
@@ -270,38 +268,30 @@ func (s *ThreadService) Update(
 		return nil, errors.New("Thread not found")
 	}
 
-	if CategoryID != nil {
-		thread.CategoryID = *CategoryID
+	if CategoryID != 0 {
+		thread.CategoryID = CategoryID
 	}
 
-	if Title != nil {
-		thread.Title = *Title
+	if Title != "" {
+		thread.Title = Title
 	}
 
-	if Slug != nil {
-		slugExists, _ := s.GetThreadBySlug(ctx, *Slug)
+	if Slug != "" {
+		slugExists, _ := s.GetThreadBySlug(ctx, Slug)
 
 		if slugExists != nil && uint64(slugExists.ID) != ID {
 			var newSlug string
 
-			newSlug = *Slug + "-" + utils.String(5)
+			newSlug = Slug + "-" + utils.String(5)
 
-			Slug = &newSlug
+			Slug = newSlug
 		}
 
-		thread.Slug = *Slug
+		thread.Slug = Slug
 	}
 
-	if IsPinned != nil {
-		thread.IsPinned = *IsPinned
-	}
-
-	if IsLocked != nil {
-		thread.IsLocked = *IsLocked
-	}
-
-	if IsSolved != nil {
-		thread.IsSolved = *IsSolved
+	if IsSolved != false {
+		thread.IsSolved = IsSolved
 	}
 
 	err = s.r.Update(ctx, thread)

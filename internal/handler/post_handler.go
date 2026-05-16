@@ -20,14 +20,14 @@ func NewPostHandler(s *service.PostService) *PostHandler {
 }
 
 type CreatePostRequest struct {
-	ThreadID uint   `json:"thread_id" binding:"required"`
-	Content  string `json:"content" binding:"required"`
-	AuthorID uint   `json:"author_id" binding:"required"`
-	ParentID *uint  `json:"parent_id,omitempty"`
+	ThreadID uint   `json:"thread_id" binding:"required" form:"thread_id" `
+	Content  string `json:"content" binding:"required" form:"content" `
+	AuthorID uint   `json:"author_id" binding:"required" form:"author_id" `
+	ParentID *uint  `json:"parent_id,omitempty" form:"parent_id,omitempty" `
 }
 
 type UpdatePostRequest struct {
-	Content *string `json:"content,omitempty"`
+	Content *string `json:"content,omitempty" binding:"required"`
 }
 
 // GETTER

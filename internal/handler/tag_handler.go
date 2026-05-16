@@ -25,9 +25,9 @@ type CreateTagRequest struct {
 }
 
 type UpdateTagRequest struct {
-	Name  *string `json:"name,omitempty"`
-	Slug  *string `json:"slug,omitempty"`
-	Color *string `json:"color,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Slug  string `json:"slug,omitempty"`
+	Color string `json:"color,omitempty"`
 }
 
 func (h TagHandler) GetAllTags(c *gin.Context) {
@@ -130,7 +130,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 	}
 
 	var req UpdateTagRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),

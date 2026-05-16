@@ -32,12 +32,12 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name     *string `json:"name,omitempty"`
-	Username *string `json:"username,omitempty" binding:"omitempty,alphanum"`
-	Email    *string `json:"email,omitempty" binding:"omitempty,email"`
-	Password *string `json:"password,omitempty" binding:"omitempty,min=8"`
-	Avatar   *string `json:"avatar,omitempty" binding:"omitempty,url"`
-	Bio      *string `json:"bio,omitempty" binding:"omitempty,max=500"`
+	Name     string `json:"name,omitempty"`
+	Username string `json:"username,omitempty" binding:"omitempty,alphanum"`
+	Email    string `json:"email,omitempty" binding:"omitempty,email"`
+	Password string `json:"password,omitempty" binding:"omitempty,min=8"`
+	Avatar   string `json:"avatar,omitempty" binding:"omitempty,url"`
+	Bio      string `json:"bio,omitempty" binding:"omitempty,max=500"`
 }
 
 // GETTER
@@ -258,7 +258,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	var req UpdateUserRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"data":    utils.BuildValidationErrors(err, &req),

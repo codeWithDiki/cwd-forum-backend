@@ -23,13 +23,13 @@ type CreateCategoryRequest struct {
 }
 
 type UpdateCategoryRequest struct {
-	ParentID    *uint   `json:"parent_id,omitempty"`
-	Name        *string `json:"name,omitempty"`
-	Slug        *string `json:"slug,omitempty"`
-	Description *string `json:"description,omitempty"`
-	IconUrl     *string `json:"icon_url,omitempty"`
-	SortOrder   *int    `json:"sort_order,omitempty"`
-	IsPrivate   *bool   `json:"is_private,omitempty"`
+	ParentID    uint   `json:"parent_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Slug        string `json:"slug,omitempty"`
+	Description string `json:"description,omitempty"`
+	IconUrl     string `json:"icon_url,omitempty"`
+	SortOrder   int    `json:"sort_order,omitempty"`
+	IsPrivate   bool   `json:"is_private,omitempty"`
 }
 
 func NewCategoryHandler(s *service.CategoryService) *CategoryHandler {

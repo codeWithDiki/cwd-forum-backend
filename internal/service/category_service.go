@@ -110,13 +110,13 @@ func (s *CategoryService) Create(
 func (s *CategoryService) Update(
 	ctx *gin.Context,
 	ID uint64,
-	ParentID *uint,
-	Name *string,
-	Slug *string,
-	Description *string,
-	IconUrl *string,
-	SortOrder *int,
-	IsPrivate *bool,
+	ParentID uint,
+	Name string,
+	Slug string,
+	Description string,
+	IconUrl string,
+	SortOrder int,
+	IsPrivate bool,
 ) (*model.Category, error) {
 	category, err := s.r.GetCategoryByID(ctx, ID)
 
@@ -128,8 +128,8 @@ func (s *CategoryService) Update(
 		return nil, errors.New("Category not found")
 	}
 
-	if ParentID != nil {
-		parentCategory, err := s.r.GetCategoryByID(ctx, uint64(*ParentID))
+	if ParentID != 0 {
+		parentCategory, err := s.r.GetCategoryByID(ctx, uint64(ParentID))
 
 		if err != nil {
 			return nil, errors.New("Parent category not found")
@@ -144,34 +144,34 @@ func (s *CategoryService) Update(
 		}
 	}
 
-	if Name != nil {
-		category.Name = *Name
+	if Name != "" {
+		category.Name = Name
 	}
 
-	if Slug != nil {
-		slugExists, _ := s.r.GetCategoryBySlug(ctx, *Slug)
+	if Slug != "" {
+		slugExists, _ := s.r.GetCategoryBySlug(ctx, Slug)
 
 		if slugExists != nil && slugExists.ID != category.ID {
 			return nil, errors.New("Slug already exists")
 		}
 
-		category.Slug = *Slug
+		category.Slug = Slug
 	}
 
-	if Description != nil {
-		category.Description = *Description
+	if Description != "" {
+		category.Description = Description
 	}
 
-	if IconUrl != nil {
-		category.IconUrl = *IconUrl
+	if IconUrl != "" {
+		category.IconUrl = IconUrl
 	}
 
-	if SortOrder != nil {
-		category.SortOrder = *SortOrder
+	if SortOrder != 0 {
+		category.SortOrder = SortOrder
 	}
 
-	if IsPrivate != nil {
-		category.IsPrivate = *IsPrivate
+	if IsPrivate != false {
+		category.IsPrivate = IsPrivate
 	}
 
 	err = s.r.Update(ctx, category)

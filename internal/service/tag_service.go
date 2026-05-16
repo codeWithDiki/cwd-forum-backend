@@ -89,9 +89,9 @@ func (s *TagService) Create(
 func (s *TagService) Update(
 	ctx *gin.Context,
 	ID uint64,
-	Name *string,
-	Slug *string,
-	Color *string,
+	Name string,
+	Slug string,
+	Color string,
 ) (*model.Tag, error) {
 	tag, err := s.GetTagByID(ctx, ID)
 	if err != nil {
@@ -102,18 +102,18 @@ func (s *TagService) Update(
 		return nil, errors.New("tag not found")
 	}
 
-	if Name != nil {
-		tag.Name = *Name
+	if Name != "" {
+		tag.Name = Name
 	}
-	if Slug != nil {
-		slugExists, _ := s.r.GetTagBySlug(ctx, *Slug)
+	if Slug != "" {
+		slugExists, _ := s.r.GetTagBySlug(ctx, Slug)
 		if slugExists != nil && slugExists.ID != uint(ID) {
 			return nil, errors.New("tag with the same slug already exists")
 		}
-		tag.Slug = *Slug
+		tag.Slug = Slug
 	}
-	if Color != nil {
-		tag.Color = *Color
+	if Color != "" {
+		tag.Color = Color
 	}
 
 	err = s.r.Update(ctx, tag)

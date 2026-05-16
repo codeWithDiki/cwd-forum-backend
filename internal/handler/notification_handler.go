@@ -28,7 +28,7 @@ type CreateNotificationRequest struct {
 }
 
 type UpdateNotificationRequest struct {
-	IsRead *bool `json:"is_read,omitempty"`
+	IsRead *bool `json:"is_read,omitempty" binding:"required" form:"is_read,omitempty"`
 }
 
 func (h NotificationHandler) GetNotifications(c *gin.Context) {

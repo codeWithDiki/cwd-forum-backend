@@ -30,12 +30,10 @@ type CreateThreadRequest struct {
 }
 
 type UpdateThreadRequest struct {
-	CategoryID *uint   `json:"category_id,omitempty"`
-	Title      *string `json:"title,omitempty"`
-	Slug       *string `json:"slug,omitempty"`
-	IsPinned   *bool   `json:"is_pinned,omitempty"`
-	IsLocked   *bool   `json:"is_locked,omitempty"`
-	IsSolved   *bool   `json:"is_solved,omitempty"`
+	CategoryID uint   `json:"category_id,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Slug       string `json:"slug,omitempty"`
+	IsSolved   bool   `json:"is_solved,omitempty"`
 }
 
 // GETTER
@@ -293,8 +291,6 @@ func (h *ThreadHandler) Update(c *gin.Context) {
 		req.CategoryID,
 		req.Title,
 		req.Slug,
-		req.IsPinned,
-		req.IsLocked,
 		req.IsSolved,
 	)
 
