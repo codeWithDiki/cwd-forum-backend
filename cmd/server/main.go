@@ -4,6 +4,7 @@ import (
 	"context"
 	"gin-quickstart/config"
 	"gin-quickstart/internal/app"
+	"gin-quickstart/internal/service"
 	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/utils"
 	"gin-quickstart/pkg/worker"
@@ -41,11 +42,16 @@ func main() {
 
 	workerPool := worker.NewWorker(20)
 
+	wsHub := service.NewWSHub(redis)
+
+	go wsHub.StartRedisListener()
+
 	deps := app.Dependencies{
 		DB:     db,
 		Redis:  redis,
 		Worker: workerPool,
 		Logger: log,
+		WsHub:  wsHub,
 	}
 
 	r := routes.SetupRouter(deps)

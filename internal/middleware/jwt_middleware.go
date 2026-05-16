@@ -15,16 +15,21 @@ import (
 func JWTMiddleware(redis *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+		var tokenString string
 
-		if authHeader == "" {
+		if authHeader != "" {
+			tokenString = strings.Replace(authHeader, "Bearer ", "", 1)
+		} else {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"message": "unauthorized",
 			})
 			c.Abort()
 			return
 		}
-
-		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 
 		token, err := jwtLib.Parse(tokenString, func(token *jwtLib.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"gin-quickstart/internal/service"
 	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/worker"
 
@@ -13,4 +14,5 @@ type Dependencies struct {
 	Redis  *redis.Client
 	Worker *worker.WorkerPool
 	Logger *logger.Logger
+	WsHub  *service.WSHub
 }

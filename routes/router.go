@@ -132,12 +132,13 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 
 		notificationRepo := repository.NewNotificationRepository(deps.Logger, deps.DB, deps.Redis)
 		notificationService := service.NewNotificationService(deps.Logger, notificationRepo)
-		notificationHandler := handler.NewNotificationHandler(notificationService)
+		notificationHandler := handler.NewNotificationHandler(notificationService, deps.WsHub)
 
 		notification := v1.Group("/notifications")
 		notification.Use(middleware.JWTMiddleware(deps.Redis))
 
 		notification.GET("/", notificationHandler.GetNotifications)
+		notification.GET("/ws", notificationHandler.HandleWebSocket)
 		notification.GET("/:id", notificationHandler.GetNotificationByID)
 		notification.POST("/", notificationHandler.CreateNotification)
 		notification.PATCH("/:id/read", notificationHandler.MarkAsRead)

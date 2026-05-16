@@ -1,11 +1,14 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/email"
 	"gin-quickstart/pkg/logger"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -59,6 +62,17 @@ func (s NotificationService) CreateNotification(ctx *gin.Context, notification *
 	var user model.User
 	if err := s.Repo.GormDB.Select("email").First(&user, notification.UserId).Error; err == nil && user.Email != "" {
 		go s.emailClient.SendNotificationEmail(user.Email, notification.Type, notification.Payload)
+
+	}
+	// Publish to Redis Pub/Sub
+	if s.Repo.RedisClient != nil {
+		payload, err := json.Marshal(notification)
+		if err == nil {
+			s.log.Debug(ctx, "Publishing notification to Redis Pub/Sub", s.log.Field("NotificationID", notification.ID))
+			s.Repo.RedisClient.Publish(context.Background(), "realtime:notifications", string(payload))
+		} else {
+			log.Println("Error marshalling notification for redis:", err)
+		}
 	}
 
 	return notification, nil
