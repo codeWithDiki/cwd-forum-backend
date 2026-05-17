@@ -514,3 +514,14 @@ func (r *UserRepository) IsFollowing(ctx *gin.Context, userID uint64, followerID
 
 	return count > 0, nil
 }
+
+func (r *UserRepository) BanUser(ctx *gin.Context, userID uint64, isBanned bool) error {
+	r.log.Debug(ctx, "Repo BanUser Called", r.log.Field("UserID", userID), r.log.Field("IsBanned", isBanned))
+
+	err := r.DeleteCache(ctx, "user:"+strconv.FormatUint(userID, 10))
+	if err != nil {
+		r.log.Error(ctx, "Repo BanUser Cache Delete Error", err, r.log.Field("UserID", userID))
+	}
+
+	return r.GormDB.Model(&model.User{}).Where("id = ?", userID).Update("is_banned", isBanned).Error
+}

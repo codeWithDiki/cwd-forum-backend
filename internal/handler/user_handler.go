@@ -403,3 +403,44 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 		"message": "ok",
 	})
 }
+
+type BanUserRequest struct {
+	IsBanned bool `json:"is_banned" binding:"required"`
+}
+
+func (h *UserHandler) BanUser(c *gin.Context) {
+	param := c.Param("id")
+	id, err := strconv.ParseUint(param, 10, 64)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "invalid user ID",
+		})
+		return
+	}
+
+	var req BanUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	err = h.Service.BanUser(c, id, req.IsBanned)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "ok",
+	})
+}

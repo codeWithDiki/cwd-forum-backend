@@ -20,14 +20,16 @@ import (
 )
 
 type PostService struct {
-	log *logger.Logger
-	r   *repository.PostRepository
+	log               *logger.Logger
+	r                 *repository.PostRepository
+	moderationLogRepo *repository.ModerationLogRepository
 }
 
-func NewPostService(log *logger.Logger, r *repository.PostRepository) *PostService {
+func NewPostService(log *logger.Logger, r *repository.PostRepository, moderationLogRepo *repository.ModerationLogRepository) *PostService {
 	return &PostService{
-		log: log,
-		r:   r,
+		log:               log,
+		r:                 r,
+		moderationLogRepo: moderationLogRepo,
 	}
 }
 
@@ -233,7 +235,7 @@ func (s *PostService) Update(
 	return post, nil
 }
 
-func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
+func (s *PostService) Delete(ctx *gin.Context, ID uint64, moderatorID *uint, reason *string) error {
 	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
@@ -247,7 +249,7 @@ func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
 	replies := post.Posts
 
 	for _, reply := range replies {
-		err = s.Delete(ctx, uint64(reply.ID))
+		err = s.Delete(ctx, uint64(reply.ID), moderatorID, reason)
 
 		if err != nil {
 			return err
@@ -258,6 +260,17 @@ func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
 
 	if err != nil {
 		return err
+	}
+
+	if moderatorID != nil && reason != nil {
+		postID := uint(ID)
+		log := &model.ModerationLog{
+			ModeratorId:  *moderatorID,
+			TargetPostId: &postID,
+			Action:       "delete_post",
+			Reason:       *reason,
+		}
+		s.moderationLogRepo.Create(ctx, log)
 	}
 
 	return nil
