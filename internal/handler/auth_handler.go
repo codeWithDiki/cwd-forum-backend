@@ -72,7 +72,7 @@ func (h AuthHandler) GetProfile(c *gin.Context) {
 func (h AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"data":    utils.BuildValidationErrors(err, &req),

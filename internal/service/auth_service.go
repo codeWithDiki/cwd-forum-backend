@@ -46,18 +46,20 @@ func (s *AuthService) Login(
 	password string,
 ) (string, error) {
 	user, err := s.r.GetUserByUsername(ctx, username)
-
+	s.log.Debug(ctx, "Service Login Called", s.log.Field("username", username))
 	if err != nil {
 		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
+		s.log.Warn(ctx, "Service Login Failed - Invalid Password", s.log.Field("username", username))
 		return "", err
 	}
 
 	token, err := jwt.GenerateToken(user.ID)
 	if err != nil {
+		s.log.Error(ctx, "Service Login Failed - Token Generation Error", err, s.log.Field("username", username))
 		return "", err
 	}
 
@@ -65,8 +67,10 @@ func (s *AuthService) Login(
 	user.LastLoginAt = &now
 
 	s.r.RedisClient.Set(ctx, token, user.ID, time.Hour*24)
+	s.log.Info(ctx, "Service Login Successful", s.log.Field("username", username), s.log.Field("user_id", user.ID))
 
-	err = s.r.GormDB.Save(&user).Error
+	err = s.r.GormDB.Model(&user).Update("last_login_at", now).Error
+	s.log.Debug(ctx, "Service Login - Updated LastLoginAt", s.log.Field("username", username), s.log.Field("last_login_at", user.LastLoginAt))
 	if err != nil {
 		return "", err
 	}
