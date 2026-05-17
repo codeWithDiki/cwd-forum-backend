@@ -20,14 +20,16 @@ import (
 )
 
 type ThreadService struct {
-	log *logger.Logger
-	r   *repository.ThreadRepository
+	log               *logger.Logger
+	r                 *repository.ThreadRepository
+	moderationLogRepo *repository.ModerationLogRepository
 }
 
-func NewThreadService(log *logger.Logger, r *repository.ThreadRepository) *ThreadService {
+func NewThreadService(log *logger.Logger, r *repository.ThreadRepository, moderationLogRepo *repository.ModerationLogRepository) *ThreadService {
 	return &ThreadService{
-		log: log,
-		r:   r,
+		log:               log,
+		r:                 r,
+		moderationLogRepo: moderationLogRepo,
 	}
 }
 
@@ -303,7 +305,7 @@ func (s *ThreadService) Update(
 	return thread, nil
 }
 
-func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
+func (s *ThreadService) Delete(ctx *gin.Context, ID uint64, moderatorID *uint, reason *string) error {
 	thread, err := s.r.GetThreadByID(ctx, ID)
 
 	if err != nil {
@@ -324,6 +326,23 @@ func (s *ThreadService) Delete(ctx *gin.Context, ID uint64) error {
 				return err
 			}
 		}
+	}
+
+	err = s.r.Delete(ctx, thread)
+
+	if err != nil {
+		return err
+	}
+
+	if moderatorID != nil && reason != nil {
+		targetUserID := uint(thread.AuthorID)
+		log := &model.ModerationLog{
+			ModeratorId:  *moderatorID,
+			TargetUserId: &targetUserID,
+			Action:       "delete_thread",
+			Reason:       *reason,
+		}
+		s.moderationLogRepo.Create(ctx, log)
 	}
 
 	return nil

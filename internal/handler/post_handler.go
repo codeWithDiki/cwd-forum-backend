@@ -327,7 +327,18 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	err = h.s.Delete(c, ID)
+	var req struct {
+		Reason *string `json:"reason"`
+	}
+	c.ShouldBindJSON(&req)
+
+	var moderatorID *uint
+	if userID, exists := c.Get("user_id"); exists {
+		uid := uint(userID.(uint))
+		moderatorID = &uid
+	}
+
+	err = h.s.Delete(c, ID, moderatorID, req.Reason)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

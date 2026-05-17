@@ -19,6 +19,9 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 	{
 		v1 := r.Group("/v1")
 
+		// Moderation log repository (shared)
+		moderationLogRepo := repository.NewModerationLogRepository(deps.Logger, deps.DB)
+
 		//repostiory
 		userRepo := repository.NewUserRepository(deps.Logger, deps.DB, deps.Redis)
 		userService := service.NewUserService(deps.Logger, userRepo)
@@ -34,6 +37,7 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		user.GET("/username/:username", middleware.JWTMiddleware(deps.Redis), userHandler.GetUserByUsername)
 		user.GET("/email/:email", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.GetUserByEmail)
 		user.PATCH("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.UpdateUser)
+		user.POST("/:id/ban", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), userHandler.BanUser)
 
 		userUtility := user.Group("/utility")
 		userUtility.POST("/follow/:id", middleware.JWTMiddleware(deps.Redis), userHandler.Follow)
@@ -55,7 +59,7 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		category.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsAdminLogged(*userRepo, deps.Redis), categoryHandler.Delete)
 
 		threadRepo := repository.NewThreadRepository(deps.Logger, deps.DB, deps.Redis)
-		threadService := service.NewThreadService(deps.Logger, threadRepo)
+		threadService := service.NewThreadService(deps.Logger, threadRepo, moderationLogRepo)
 		threadHandler := handler.NewThreadHandler(threadService)
 
 		thread := v1.Group("/threads")
@@ -71,7 +75,7 @@ func SetupRouter(deps app.Dependencies) *gin.Engine {
 		thread.DELETE("/:id", middleware.JWTMiddleware(deps.Redis), middleware.IsCanUpdateThread(deps.DB, threadService), threadHandler.Delete)
 
 		postRepo := repository.NewPostRepository(deps.Logger, deps.DB, deps.Redis)
-		postService := service.NewPostService(deps.Logger, postRepo)
+		postService := service.NewPostService(deps.Logger, postRepo, moderationLogRepo)
 		postHandler := handler.NewPostHandler(postService)
 
 		post := v1.Group("/posts")
