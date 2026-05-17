@@ -268,3 +268,19 @@ func (s *UserService) UnfollowUser(ctx *gin.Context, userID uint64, targetUserID
 
 	return nil
 }
+
+func (s *UserService) BanUser(ctx *gin.Context, userID uint64, isBanned bool) error {
+	user, err := s.Repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if user.IsBanned == isBanned {
+		if isBanned {
+			return errors.New("User is already banned")
+		}
+		return errors.New("User is not banned")
+	}
+
+	return s.Repo.BanUser(ctx, userID, isBanned)
+}
