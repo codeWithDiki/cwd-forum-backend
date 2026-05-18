@@ -42,7 +42,7 @@ type UpdateBadgeRequest struct {
 	CriteriaType    string                `form:"criteria_type" binding:"omitempty"`
 	CriteriaValue   int                   `form:"criteria_value" binding:"omitempty"`
 	FontColor       string                `form:"font_color" binding:"omitempty,hexcolor"`
-	BackgroundColor string                `form:"background_color" binding:"omitempty, hex_color"`
+	BackgroundColor string                `form:"background_color" binding:"omitempty,hexcolor"`
 	Icon            *multipart.FileHeader `form:"icon" binding:"omitempty"`
 }
 
