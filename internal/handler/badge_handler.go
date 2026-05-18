@@ -31,7 +31,7 @@ type CreateBadgeRequest struct {
 	Description     string                `form:"description" binding:"required"`
 	CriteriaType    string                `form:"criteria_type" binding:"required"`
 	CriteriaValue   int                   `form:"criteria_value" binding:"required"`
-	FontColor       string                `form:"font_color" binding:"required, hex_color"`
+	FontColor       string                `form:"font_color" binding:"required,hexcolor"`
 	BackgroundColor string                `form:"background_color" binding:"required, hex_color"`
 	Icon            *multipart.FileHeader `form:"icon" binding:"required"`
 }
