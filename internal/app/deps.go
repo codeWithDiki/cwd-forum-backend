@@ -5,6 +5,7 @@ import (
 	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/worker"
 
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -15,4 +16,5 @@ type Dependencies struct {
 	Worker *worker.WorkerPool
 	Logger *logger.Logger
 	WsHub  *service.WSHub
+	S3     *s3.S3
 }

@@ -5,19 +5,22 @@ import (
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
+	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
 )
 
 type CategoryService struct {
-	log *logger.Logger
-	r   *repository.CategoryRepository
+	log     *logger.Logger
+	r       *repository.CategoryRepository
+	storage *repository.StorageRepository
 }
 
-func NewCategoryService(log *logger.Logger, r *repository.CategoryRepository) *CategoryService {
+func NewCategoryService(log *logger.Logger, r *repository.CategoryRepository, storage *repository.StorageRepository) *CategoryService {
 	return &CategoryService{
-		log: log,
-		r:   r,
+		log:     log,
+		r:       r,
+		storage: storage,
 	}
 }
 
@@ -66,16 +69,15 @@ func (s *CategoryService) Create(
 	Name string,
 	Slug string,
 	Description string,
-	IconUrl string,
 	SortOrder int,
 	IsPrivate bool,
+	Icon *multipart.FileHeader,
 ) (*model.Category, error) {
 	category := &model.Category{
 		ParentID:    ParentID,
 		Name:        Name,
 		Slug:        Slug,
 		Description: Description,
-		IconUrl:     IconUrl,
 		SortOrder:   SortOrder,
 		IsPrivate:   IsPrivate,
 	}
@@ -98,6 +100,17 @@ func (s *CategoryService) Create(
 		return nil, errors.New("Slug already exists")
 	}
 
+	if Icon != nil {
+		iconUrl, err := s.storage.UploadFile(ctx, Icon, "uploads/categories")
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload category icon", err)
+			return nil, errors.New("Failed to upload category icon: " + err.Error())
+		}
+
+		category.IconUrl = iconUrl
+	}
+
 	err := s.r.Create(ctx, category)
 
 	if err != nil {
@@ -114,9 +127,9 @@ func (s *CategoryService) Update(
 	Name string,
 	Slug string,
 	Description string,
-	IconUrl string,
 	SortOrder int,
 	IsPrivate bool,
+	Icon *multipart.FileHeader,
 ) (*model.Category, error) {
 	category, err := s.r.GetCategoryByID(ctx, ID)
 
@@ -162,8 +175,23 @@ func (s *CategoryService) Update(
 		category.Description = Description
 	}
 
-	if IconUrl != "" {
-		category.IconUrl = IconUrl
+	if Icon != nil {
+
+		iconUrl, err := s.storage.UploadFile(ctx, Icon, "uploads/categories")
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload category icon", err)
+			return nil, errors.New("Failed to upload category icon: " + err.Error())
+		}
+
+		deleteFile := s.storage.DeleteFile(ctx, category.IconUrl)
+
+		if deleteFile != nil {
+			s.log.Error(ctx, "Failed to delete old category icon", deleteFile)
+			return nil, errors.New("Failed to delete old category icon: " + deleteFile.Error())
+		}
+
+		category.IconUrl = iconUrl
 	}
 
 	if SortOrder != 0 {

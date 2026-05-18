@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/email"
@@ -11,15 +10,9 @@ import (
 	"gin-quickstart/pkg/logger"
 	"log"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -29,13 +22,19 @@ type AuthService struct {
 	log         *logger.Logger
 	r           *repository.AuthRepository
 	emailClient *email.EmailClient
+	storage     *repository.StorageRepository
 }
 
-func NewAuthService(log *logger.Logger, r *repository.AuthRepository) *AuthService {
+func NewAuthService(
+	log *logger.Logger,
+	r *repository.AuthRepository,
+	storage *repository.StorageRepository,
+) *AuthService {
 	return &AuthService{
 		log:         log,
 		r:           r,
 		emailClient: email.NewEmailClient(),
+		storage:     storage,
 	}
 }
 
@@ -46,18 +45,20 @@ func (s *AuthService) Login(
 	password string,
 ) (string, error) {
 	user, err := s.r.GetUserByUsername(ctx, username)
-
+	s.log.Debug(ctx, "Service Login Called", s.log.Field("username", username))
 	if err != nil {
 		return "", err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
+		s.log.Warn(ctx, "Service Login Failed - Invalid Password", s.log.Field("username", username))
 		return "", err
 	}
 
 	token, err := jwt.GenerateToken(user.ID)
 	if err != nil {
+		s.log.Error(ctx, "Service Login Failed - Token Generation Error", err, s.log.Field("username", username))
 		return "", err
 	}
 
@@ -65,8 +66,10 @@ func (s *AuthService) Login(
 	user.LastLoginAt = &now
 
 	s.r.RedisClient.Set(ctx, token, user.ID, time.Hour*24)
+	s.log.Info(ctx, "Service Login Successful", s.log.Field("username", username), s.log.Field("user_id", user.ID))
 
-	err = s.r.GormDB.Save(&user).Error
+	err = s.r.GormDB.Model(&user).Update("last_login_at", now).Error
+	s.log.Debug(ctx, "Service Login - Updated LastLoginAt", s.log.Field("username", username), s.log.Field("last_login_at", user.LastLoginAt))
 	if err != nil {
 		return "", err
 	}
@@ -188,67 +191,21 @@ func (s *AuthService) UpdateProfile(
 	}
 
 	if File != nil {
-		wp := ctx.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
-		ext := filepath.Ext(File.Filename)
-		newFileName := fmt.Sprintf("%d_%s%s", user.ID, uuid.New().String(), ext)
+		avatarUrl, err := s.storage.UploadFile(ctx, File, "uploads/avatars/")
 
-		user.Avatar = fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload avatar", err, s.log.Field("user_id", userID))
+			return errors.New("Failed to upload avatar: " + err.Error())
+		}
 
-		wp.Submit(func() {
-			s3Client := ctx.MustGet("s3Client").(*s3.S3)
+		deleteFile := s.storage.DeleteFile(ctx, user.Avatar)
 
-			if user.Avatar != "" {
-				// Extract the S3 key from the Avatar URL
-				avatarUrl := user.Avatar
-				s3Key := avatarUrl[strings.LastIndex(avatarUrl, "/")+1:]
+		if deleteFile != nil {
+			s.log.Error(ctx, "Failed to delete old avatar", deleteFile, s.log.Field("user_id", userID))
 
-				// Check if the file exists in S3
-				_, err := s3Client.HeadObject(&s3.HeadObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(s3Key),
-				})
+		}
 
-				if err != nil {
-					fmt.Printf("Error checking S3 for avatar: %v\n", err)
-				}
-
-				// If the file exists, delete it
-				_, err = s3Client.DeleteObject(&s3.DeleteObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(s3Key),
-				})
-
-				if err != nil {
-					fmt.Printf("Error deleting old avatar from S3: %v\n", err)
-				}
-
-			}
-
-			if File != nil {
-
-				fileBinary, err := File.Open()
-
-				if err != nil {
-					fmt.Printf("Error opening new avatar file: %v\n", err)
-					return
-				}
-				defer fileBinary.Close()
-
-				_, err = s3Client.PutObject(&s3.PutObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(newFileName),
-					Body:   fileBinary,
-					ACL:    aws.String("public-read"),
-				})
-
-				if err != nil {
-					fmt.Printf("Error uploading new avatar to S3: %v\n", err)
-					return
-				}
-
-				fmt.Println("Test")
-			}
-		})
+		user.Avatar = avatarUrl
 	}
 
 	updateError := s.r.UpdateProfile(ctx, user)

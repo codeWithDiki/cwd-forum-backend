@@ -2,34 +2,34 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
 	"gin-quickstart/pkg/utils"
-	"gin-quickstart/pkg/worker"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type ThreadService struct {
 	log               *logger.Logger
 	r                 *repository.ThreadRepository
 	moderationLogRepo *repository.ModerationLogRepository
+	storage           *repository.StorageRepository
 }
 
-func NewThreadService(log *logger.Logger, r *repository.ThreadRepository, moderationLogRepo *repository.ModerationLogRepository) *ThreadService {
+func NewThreadService(
+	log *logger.Logger,
+	r *repository.ThreadRepository,
+	moderationLogRepo *repository.ModerationLogRepository,
+	storage *repository.StorageRepository,
+) *ThreadService {
 	return &ThreadService{
 		log:               log,
 		r:                 r,
 		moderationLogRepo: moderationLogRepo,
+		storage:           storage,
 	}
 }
 
@@ -130,27 +130,15 @@ func (s *ThreadService) Create(
 		AuthorID:   AuthorID,
 	}
 
-	wp, wpExists := ctx.Get("workerPool")
+	userExists, err := s.r.GormDB.Model(&model.User{}).Select("id").Where("id = ?", AuthorID).First(&model.User{}).RowsAffected, s.r.GormDB.Error
 
-	if !wpExists {
-		return nil, nil, errors.New("Worker pool not found in context")
+	if err != nil {
+		s.log.Error(ctx, "Database error while checking for user existence", err, s.log.Field("AuthorID", AuthorID))
+		return nil, nil, err
 	}
 
-	var userExists bool
-
-	uErr := s.r.GormDB.
-		Model(&model.User{}).
-		Where("id = ?", AuthorID).
-		Select("count(*) > 0").
-		Row().
-		Scan(&userExists)
-
-	if uErr != nil {
-		return nil, nil, uErr
-	}
-
-	if !userExists {
-		return nil, nil, errors.New("Author is not found!")
+	if userExists == 0 {
+		return nil, nil, errors.New("Author not found")
 	}
 
 	slugExists, _ := s.r.GetThreadBySlug(ctx, Slug)
@@ -159,7 +147,7 @@ func (s *ThreadService) Create(
 		thread.Slug = Slug + "-" + utils.String(5)
 	}
 
-	err := s.r.Create(ctx, thread)
+	err = s.r.Create(ctx, thread)
 
 	if err != nil {
 		return nil, nil, err
@@ -213,40 +201,43 @@ func (s *ThreadService) Create(
 
 	for _, file := range Attachments {
 
-		wp.(*worker.WorkerPool).Worker.Submit(func() {
-			fmt.Println("Uploading from Thread")
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
+		attachment, err := s.storage.UploadFile(ctx, file, "uploads/attachments")
+		filename := s.storage.GenerateFileName(ctx, file)
 
-			s3client := ctx.MustGet("s3Client")
-			fileBinary, err := file.Open()
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload attachment", err, s.log.Field("Filename", file.Filename))
+			continue
+		}
 
-			if err != nil {
-				return
-			}
+		mimeType, err := s.storage.GetFileContentType(ctx, file)
 
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment MIME type", err, s.log.Field("Filename", file.Filename))
+			continue
+		}
 
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
+		fileSize, err := s.storage.GetFileSize(ctx, file)
 
-			s.CreatePostAttachment(ctx, post, &attachment)
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment file size", err, s.log.Field("Filename", file.Filename))
+			continue
+		}
 
-			if uErr != nil {
-				return
-			}
-		})
+		newAttachment := &model.Attachment{
+			PostID:   post.ID,
+			Filename: filename,
+			Url:      attachment,
+			MimeType: mimeType,
+			FileSize: fileSize,
+		}
+
+		err = s.r.CreatePostAttachment(ctx, post, newAttachment)
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to create attachment record in database", err, s.log.Field("Filename", file.Filename))
+			continue
+		}
+
 	}
 
 	return thread, post, nil

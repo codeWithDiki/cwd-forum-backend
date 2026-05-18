@@ -50,9 +50,6 @@ func (s NotificationService) CreateNotification(ctx *gin.Context, notification *
 		return nil, errors.New("user_id is required")
 	}
 
-	notification.CreatedAt = time.Now()
-	notification.UpdatedAt = time.Now()
-
 	err := s.Repo.Create(ctx, notification)
 	if err != nil {
 		return nil, err

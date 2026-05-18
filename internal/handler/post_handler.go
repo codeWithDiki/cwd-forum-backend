@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -20,14 +21,14 @@ func NewPostHandler(s *service.PostService) *PostHandler {
 }
 
 type CreatePostRequest struct {
-	ThreadID uint   `json:"thread_id" binding:"required" form:"thread_id" `
-	Content  string `json:"content" binding:"required" form:"content" `
-	AuthorID uint   `json:"author_id" binding:"required" form:"author_id" `
-	ParentID *uint  `json:"parent_id,omitempty" form:"parent_id,omitempty" `
+	ThreadID    uint                    `json:"thread_id" binding:"required" form:"thread_id" `
+	Content     string                  `json:"content" binding:"required" form:"content" `
+	ParentID    *uint                   `json:"parent_id,omitempty" form:"parent_id,omitempty" `
+	Attachments []*multipart.FileHeader `json:"attachments,omitempty" form:"attachments,omitempty"`
 }
 
 type UpdatePostRequest struct {
-	Content *string `json:"content,omitempty" binding:"required"`
+	Content string `json:"content,omitempty" binding:"required"`
 }
 
 // GETTER
@@ -196,14 +197,10 @@ func (h PostHandler) GetPostVotes(c *gin.Context) {
 // SETTER
 func (h *PostHandler) Create(c *gin.Context) {
 	var req CreatePostRequest
-	var Attachments []*multipart.FileHeader
-	var UserId uint
 
-	userID, iErr := c.Get("user_id")
+	UserID, iErr := c.Get("user_id")
 
-	if iErr {
-		UserId = userID.(uint)
-	} else {
+	if !iErr {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"error":   "Unauthorized",
@@ -211,52 +208,22 @@ func (h *PostHandler) Create(c *gin.Context) {
 		return
 	}
 
-	form, err := c.MultipartForm()
-
-	if err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Failed to parse multipart form: " + err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
-
-	files := form.File["attachments"]
-
-	for _, file := range files {
-		Attachments = append(Attachments, file)
-	}
-
-	req.Content = c.PostForm("content")
-
-	threadID, err := strconv.ParseUint(c.PostForm("thread_id"), 10, 64)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   "invalid thread ID : " + err.Error(),
-		})
-		return
-	}
-
-	req.ThreadID = uint(threadID)
-
-	parentID, err := strconv.ParseUint(c.PostForm("parent_id"), 10, 64)
-
-	if err == nil {
-		req.ParentID = new(uint)
-		*req.ParentID = uint(parentID)
-	}
-
-	req.AuthorID = UserId
 
 	post, err := h.s.Create(
 		c,
 		req.ThreadID,
 		req.Content,
-		req.AuthorID,
+		UserID.(uint),
 		req.ParentID,
-		Attachments,
+		req.Attachments,
 	)
 
 	if err != nil {
@@ -287,10 +254,11 @@ func (h *PostHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}

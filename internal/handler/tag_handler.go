@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
 	"net/http"
 	"strconv"
 
@@ -21,13 +22,13 @@ func NewTagHandler(s *service.TagService) *TagHandler {
 type CreateTagRequest struct {
 	Name  string `json:"name" binding:"required"`
 	Slug  string `json:"slug" binding:"required"`
-	Color string `json:"color" binding:"required"`
+	Color string `json:"color" binding:"required,hexcolor"`
 }
 
 type UpdateTagRequest struct {
 	Name  string `json:"name,omitempty"`
 	Slug  string `json:"slug,omitempty"`
-	Color string `json:"color,omitempty"`
+	Color string `json:"color,omitempty" binding:"omitempty,hexcolor"`
 }
 
 func (h TagHandler) GetAllTags(c *gin.Context) {
@@ -97,7 +98,8 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
@@ -133,7 +135,8 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
