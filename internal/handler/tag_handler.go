@@ -28,7 +28,7 @@ type CreateTagRequest struct {
 type UpdateTagRequest struct {
 	Name  string `json:"name,omitempty"`
 	Slug  string `json:"slug,omitempty"`
-	Color string `json:"color,omitempty" binding:"omitempty,hex_color"`
+	Color string `json:"color,omitempty" binding:"omitempty,hexcolor"`
 }
 
 func (h TagHandler) GetAllTags(c *gin.Context) {
