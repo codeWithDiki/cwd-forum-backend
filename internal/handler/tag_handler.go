@@ -22,7 +22,7 @@ func NewTagHandler(s *service.TagService) *TagHandler {
 type CreateTagRequest struct {
 	Name  string `json:"name" binding:"required"`
 	Slug  string `json:"slug" binding:"required"`
-	Color string `json:"color" binding:"required,hex_color"`
+	Color string `json:"color" binding:"required,hexcolor"`
 }
 
 type UpdateTagRequest struct {
