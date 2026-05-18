@@ -2,20 +2,13 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -23,13 +16,19 @@ type PostService struct {
 	log               *logger.Logger
 	r                 *repository.PostRepository
 	moderationLogRepo *repository.ModerationLogRepository
+	storage           *repository.StorageRepository
 }
 
-func NewPostService(log *logger.Logger, r *repository.PostRepository, moderationLogRepo *repository.ModerationLogRepository) *PostService {
+func NewPostService(
+	log *logger.Logger, r *repository.PostRepository,
+	moderationLogRepo *repository.ModerationLogRepository,
+	storage *repository.StorageRepository,
+) *PostService {
 	return &PostService{
 		log:               log,
 		r:                 r,
 		moderationLogRepo: moderationLogRepo,
+		storage:           storage,
 	}
 }
 
@@ -149,53 +148,43 @@ func (s *PostService) Create(
 
 	s.log.Debug(ctx, "Processing attachments for post", s.log.Field("PostID", post.ID), s.log.Field("AttachmentCount", len(Attachments)))
 	for _, file := range Attachments {
-		wp, wpExists := ctx.Get("fileUploadWorkerPool")
-		s.log.Debug(ctx, "Create Post with Attachment", s.log.Field("Filename", file.Filename))
+		attachmentUrl, err := s.storage.UploadFile(ctx, file, "uploads/attachments")
 
-		if !wpExists {
-			s.log.Error(ctx, "Failed to get worker pool for file upload", errors.New("Worker Pool is not available"))
-			return nil, errors.New("Failed to get worker pool")
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload attachment", err, s.log.Field("Filename", file.Filename))
+			return nil, err
 		}
 
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			s.log.Debug(ctx, "Uploading attachment to S3", s.log.Field("Filename", file.Filename))
+		filename := s.storage.GenerateFileName(ctx, file)
 
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
+		mimeType, err := s.storage.GetFileContentType(ctx, file)
 
-			s3client := ctx.MustGet("s3Client")
-			fileBinary, err := file.Open()
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment MIME type", err, s.log.Field("Filename", file.Filename))
+			return nil, err
+		}
 
-			if err != nil {
-				s.log.Error(ctx, "Failed to open attachment file", err, s.log.Field("Filename", file.Filename))
-				return
-			}
+		fileSize, err := s.storage.GetFileSize(ctx, file)
 
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment file size", err, s.log.Field("Filename", file.Filename))
+			return nil, err
+		}
 
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
+		attachment := model.Attachment{
+			PostID:     post.ID,
+			UploaderId: post.AuthorID,
+			Url:        attachmentUrl,
+			Filename:   filename,
+			MimeType:   mimeType,
+			FileSize:   fileSize,
+		}
+		_, err = s.CreateAttachment(ctx, post, &attachment)
 
-			post.Attachments = append(post.Attachments, attachment)
-
-			s.CreateAttachment(ctx, post, &attachment)
-
-			if uErr != nil {
-				return
-			}
-
-		})
+		if err != nil {
+			s.log.Error(ctx, "Failed to create attachment record", err, s.log.Field("PostID", post.ID), s.log.Field("Filename", filename))
+			return nil, err
+		}
 	}
 
 	if err != nil {

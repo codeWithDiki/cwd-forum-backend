@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/email"
@@ -11,15 +10,9 @@ import (
 	"gin-quickstart/pkg/logger"
 	"log"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -29,13 +22,19 @@ type AuthService struct {
 	log         *logger.Logger
 	r           *repository.AuthRepository
 	emailClient *email.EmailClient
+	storage     *repository.StorageRepository
 }
 
-func NewAuthService(log *logger.Logger, r *repository.AuthRepository) *AuthService {
+func NewAuthService(
+	log *logger.Logger,
+	r *repository.AuthRepository,
+	storage *repository.StorageRepository,
+) *AuthService {
 	return &AuthService{
 		log:         log,
 		r:           r,
 		emailClient: email.NewEmailClient(),
+		storage:     storage,
 	}
 }
 
@@ -192,87 +191,21 @@ func (s *AuthService) UpdateProfile(
 	}
 
 	if File != nil {
-		wp := ctx.MustGet("fileUploadWorkerPool").(*workerpool.WorkerPool)
-		ext := filepath.Ext(File.Filename)
-		newFileName := fmt.Sprintf("%d_%s%s", user.ID, uuid.New().String(), ext)
+		avatarUrl, err := s.storage.UploadFile(ctx, File, "uploads/avatars/")
 
-		wp.Submit(func() {
-			s3Client := ctx.MustGet("s3Client").(*s3.S3)
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload avatar", err, s.log.Field("user_id", userID))
+			return errors.New("Failed to upload avatar: " + err.Error())
+		}
 
-			if user.Avatar != "" {
-				// Extract the S3 key from the Avatar URL
-				avatarUrl := user.Avatar
-				s3Key := avatarUrl[strings.LastIndex(avatarUrl, "/")+1:]
+		deleteFile := s.storage.DeleteFile(ctx, user.Avatar)
 
-				// Check if the file exists in S3
-				_, err := s3Client.HeadObject(&s3.HeadObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(s3Key),
-				})
+		if deleteFile != nil {
+			s.log.Error(ctx, "Failed to delete old avatar", deleteFile, s.log.Field("user_id", userID))
 
-				if err != nil {
-					s.log.Error(ctx, "Failed to check if old avatar exists in S3", err)
-				}
+		}
 
-				// If the file exists, delete it
-				_, err = s3Client.DeleteObject(&s3.DeleteObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(s3Key),
-				})
-
-				if err != nil {
-					fmt.Printf("Error deleting old avatar from S3: %v\n", err)
-				}
-
-			}
-
-			if File != nil {
-
-				fileBinary, err := File.Open()
-
-				if err != nil {
-					s.log.Error(ctx, "Failed to open new avatar file", err)
-					return
-				}
-				defer fileBinary.Close()
-
-				_, err = s3Client.PutObject(&s3.PutObjectInput{
-					Bucket: aws.String(os.Getenv("S3_BUCKET")),
-					Key:    aws.String(newFileName),
-					Body:   fileBinary,
-					ACL:    aws.String("public-read"),
-				})
-
-				if err != nil {
-					s.log.Error(ctx, "Failed to upload new avatar to S3", err)
-					return
-				}
-
-				user.Avatar = fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-
-				s.log.Info(
-					ctx,
-					"Successfully uploaded new avatar to S3",
-					s.log.Field("username", user.Username),
-					s.log.Field("avatar_url", user.Avatar),
-				)
-
-				updateErr := s.r.GormDB.Save(&user).Error
-
-				if updateErr != nil {
-					s.log.Error(ctx, "Failed to update user avatar in database", updateErr)
-					return
-				}
-
-				s.log.Info(ctx, "Successfully updated user avatar in database", s.log.Field("username", user.Username))
-				s.r.RedisClient.Del(ctx, "user:all")
-				s.r.RedisClient.Del(ctx, "user:"+strconv.FormatUint(userID, 10))
-				s.r.RedisClient.Del(ctx, "user:username:"+user.Username)
-				s.r.RedisClient.Del(ctx, "user:email:"+user.Email)
-				s.log.Info(ctx, "Cleared user cache after avatar update", s.log.Field("username", user.Username))
-
-			}
-		})
+		user.Avatar = avatarUrl
 	}
 
 	updateError := s.r.UpdateProfile(ctx, user)

@@ -2,33 +2,26 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
 	"mime/multipart"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type BadgeService struct {
-	log *logger.Logger
-	r   *repository.BadgeRepository
+	log     *logger.Logger
+	r       *repository.BadgeRepository
+	storage *repository.StorageRepository
 }
 
-func NewBadgeService(log *logger.Logger, r *repository.BadgeRepository) *BadgeService {
+func NewBadgeService(log *logger.Logger, r *repository.BadgeRepository, storage *repository.StorageRepository) *BadgeService {
 	return &BadgeService{
-		log: log,
-		r:   r,
+		log:     log,
+		r:       r,
+		storage: storage,
 	}
 }
 
@@ -69,62 +62,32 @@ func (s *BadgeService) Create(
 	File *multipart.FileHeader,
 ) (*model.Badge, error) {
 
-	wp, wpExists := ctx.Get("fileUploadWorkerPool")
-
-	if !wpExists {
-		return nil, errors.New("Worker Pool is not available")
-	}
-
-	fileBinary, fErr := File.Open()
-
-	if fErr != nil {
-		return nil, fErr
-	}
-
-	defer fileBinary.Close()
-
-	ext := filepath.Ext(File.Filename)
-	newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-
-	iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-
 	criteriaType, err := enum.BadgeCriteriaTypeFromString(CriteriaType)
 
 	if err == false {
 		return nil, errors.New("Criteria is not registered")
 	}
 
+	if File == nil {
+		return nil, errors.New("Icon file is required")
+	}
+
+	iconUrl, uErr := s.storage.UploadFile(ctx, File, "uploads/badges")
+
+	if uErr != nil {
+		s.log.Error(ctx, "Failed to upload badge icon", uErr)
+		return nil, errors.New("Failed to upload badge icon: " + uErr.Error())
+	}
+
 	badge := &model.Badge{
 		Name:          Name,
 		Description:   Description,
 		CriteriaType:  criteriaType.String(),
-		IconUrl:       iconUrlStr,
+		IconUrl:       iconUrl,
 		CriteriaValue: CriteriaValue,
 	}
 
 	cErr := s.r.Create(ctx, badge)
-
-	wp.(*workerpool.WorkerPool).Submit(func() {
-		fmt.Println("Uploading from Post")
-
-		s3client := ctx.MustGet("s3Client")
-
-		defer fileBinary.Close()
-
-		_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-			Bucket: aws.String(os.Getenv("S3_BUCKET")),
-			Key:    aws.String(newFileName), // You can customize the key as needed
-			Body:   fileBinary,              // You should provide the actual file content here
-			ACL:    aws.String("public-read"),
-		})
-
-		if uErr != nil {
-			return
-		}
-
-		s.r.GormDB.Model(&model.Badge{}).Where("id = ?", badge.ID).Update("icon_url", iconUrlStr)
-
-	})
 
 	if cErr != nil {
 		return nil, cErr
@@ -185,73 +148,21 @@ func (s *BadgeService) Update(
 	}
 
 	if File != nil {
-		wp, wpExists := ctx.Get("fileUploadWorkerPool")
+		iconUrl, uErr := s.storage.UploadFile(ctx, File, "uploads/badges")
 
-		if !wpExists {
-			return nil, errors.New("Worker Pool is not available")
+		if uErr != nil {
+			s.log.Error(ctx, "Failed to upload badge icon", uErr)
+			return nil, errors.New("Failed to upload badge icon: " + uErr.Error())
 		}
 
-		fileBinary, fErr := File.Open()
+		deleteStatus := s.storage.DeleteFile(ctx, badge.IconUrl)
 
-		if fErr != nil {
-			return nil, fErr
+		if deleteStatus != nil {
+			s.log.Error(ctx, "Failed to delete old badge icon", deleteStatus)
 		}
 
-		ext := filepath.Ext(File.Filename)
-		newFileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-		var iconUrl *string
+		badge.IconUrl = iconUrl
 
-		iconUrlStr := fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName)
-		iconUrl = &iconUrlStr
-
-		badge.IconUrl = *iconUrl
-
-		defer fileBinary.Close()
-
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			s.log.Info(ctx, "Uploading file to S3 in background worker")
-
-			s3client := ctx.MustGet("s3Client")
-			fileBinary, err := File.Open()
-
-			if err != nil {
-				s.log.Error(ctx, "Failed to open file for S3 upload", err)
-				ctx.JSON(http.StatusBadRequest, gin.H{
-					"success": false,
-					"error":   "Failed to open file: " + err.Error(),
-				})
-				return
-			}
-
-			defer fileBinary.Close()
-
-			oldIconUrl := badge.IconUrl
-			s3Key := oldIconUrl[strings.LastIndex(oldIconUrl, "/")+1:]
-			_, dErr := s3client.(*s3.S3).DeleteObject(&s3.DeleteObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(s3Key),
-			})
-
-			if dErr != nil {
-				s.log.Error(ctx, "Failed to delete old file from S3", dErr)
-				return
-			}
-
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
-
-			if uErr != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{
-					"success": false,
-					"error":   "Failed to upload file to S3: " + uErr.Error(),
-				})
-				return
-			}
-		})
 	}
 
 	err = s.r.Update(ctx, badge)
