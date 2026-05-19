@@ -24,7 +24,7 @@ func NewUserHandler(log *logger.Logger, service *service.UserService) *UserHandl
 
 type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Username string `json:"username" binding:"required,alphanum"`
+	Username string `json:"username" binding:"required,username"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
 	Avatar   string `json:"avatar" binding:"omitempty,url"`
@@ -33,7 +33,7 @@ type CreateUserRequest struct {
 
 type UpdateUserRequest struct {
 	Name     string `json:"name,omitempty"`
-	Username string `json:"username,omitempty" binding:"omitempty,alphanum"`
+	Username string `json:"username,omitempty" binding:"omitempty,username"`
 	Email    string `json:"email,omitempty" binding:"omitempty,email"`
 	Password string `json:"password,omitempty" binding:"omitempty,min=8"`
 	Avatar   string `json:"avatar,omitempty" binding:"omitempty,url"`
@@ -389,6 +389,47 @@ func (h *UserHandler) Unfollow(c *gin.Context) {
 	}
 
 	err = h.Service.UnfollowUser(c, userID, id)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "ok",
+	})
+}
+
+type BanUserRequest struct {
+	IsBanned bool `json:"is_banned" binding:"required"`
+}
+
+func (h *UserHandler) BanUser(c *gin.Context) {
+	param := c.Param("id")
+	id, err := strconv.ParseUint(param, 10, 64)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "invalid user ID",
+		})
+		return
+	}
+
+	var req BanUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	err = h.Service.BanUser(c, id, req.IsBanned)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

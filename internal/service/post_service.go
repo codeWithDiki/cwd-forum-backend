@@ -2,32 +2,33 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"gin-quickstart/internal/enum"
 	"gin-quickstart/internal/model"
 	"gin-quickstart/internal/repository"
 	"gin-quickstart/pkg/logger"
 	"mime/multipart"
-	"os"
-	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/gammazero/workerpool"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type PostService struct {
-	log *logger.Logger
-	r   *repository.PostRepository
+	log               *logger.Logger
+	r                 *repository.PostRepository
+	moderationLogRepo *repository.ModerationLogRepository
+	storage           *repository.StorageRepository
 }
 
-func NewPostService(log *logger.Logger, r *repository.PostRepository) *PostService {
+func NewPostService(
+	log *logger.Logger, r *repository.PostRepository,
+	moderationLogRepo *repository.ModerationLogRepository,
+	storage *repository.StorageRepository,
+) *PostService {
 	return &PostService{
-		log: log,
-		r:   r,
+		log:               log,
+		r:                 r,
+		moderationLogRepo: moderationLogRepo,
+		storage:           storage,
 	}
 }
 
@@ -125,66 +126,66 @@ func (s *PostService) Create(
 		ParentID: ParentId,
 	}
 
-	wp, wpExists := ctx.Get("workerPool")
-
-	if !wpExists {
-		return nil, errors.New("Failed to get worker pool")
-	}
+	s.log.Debug(ctx, "Creating Post", s.log.Field("ThreadID", ThreadID), s.log.Field("AuthorID", AuthorID))
 
 	if ParentId != nil {
 		parentPost, err := s.r.GetPostByID(ctx, uint64(*ParentId))
 
 		if err != nil {
+			s.log.Error(ctx, "Failed to get parent post", err, s.log.Field("ParentID", *ParentId))
 			return nil, err
 		}
 
 		if parentPost == nil {
+			s.log.Error(ctx, "Parent post not found", errors.New("Parent post not found"), s.log.Field("ParentID", *ParentId))
 			return nil, errors.New("Parent is not found!")
 		}
 	}
 
-	for _, file := range Attachments {
-
-		wp.(*workerpool.WorkerPool).Submit(func() {
-			fmt.Println("Uploading from Post")
-			ext := filepath.Ext(file.Filename)
-			newFileName := fmt.Sprintf("%d_%s%s", post.ID, uuid.New().String(), ext)
-
-			s3client := ctx.MustGet("s3Client")
-			fileBinary, err := file.Open()
-
-			if err != nil {
-				return
-			}
-
-			_, uErr := s3client.(*s3.S3).PutObject(&s3.PutObjectInput{
-				Bucket: aws.String(os.Getenv("S3_BUCKET")),
-				Key:    aws.String(newFileName), // You can customize the key as needed
-				Body:   fileBinary,              // You should provide the actual file content here
-				ACL:    aws.String("public-read"),
-			})
-
-			attachment := model.Attachment{
-				PostID:     post.ID,
-				UploaderId: post.AuthorID,
-				Url:        fmt.Sprintf("%s/%s/%s", os.Getenv("S3_FILE_URL"), os.Getenv("S3_BUCKET"), newFileName),
-				Filename:   newFileName,
-				MimeType:   file.Header.Get("Content-Type"),
-				FileSize:   file.Size,
-			}
-
-			post.Attachments = append(post.Attachments, attachment)
-
-			s.CreateAttachment(ctx, post, &attachment)
-
-			if uErr != nil {
-				return
-			}
-
-		})
-	}
-
 	err := s.r.Create(ctx, post)
+
+	s.log.Debug(ctx, "Post created", s.log.Field("PostID", post.ID))
+
+	s.log.Debug(ctx, "Processing attachments for post", s.log.Field("PostID", post.ID), s.log.Field("AttachmentCount", len(Attachments)))
+	for _, file := range Attachments {
+		attachmentUrl, err := s.storage.UploadFile(ctx, file, "uploads/attachments")
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to upload attachment", err, s.log.Field("Filename", file.Filename))
+			return nil, err
+		}
+
+		filename := s.storage.GenerateFileName(ctx, file)
+
+		mimeType, err := s.storage.GetFileContentType(ctx, file)
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment MIME type", err, s.log.Field("Filename", file.Filename))
+			return nil, err
+		}
+
+		fileSize, err := s.storage.GetFileSize(ctx, file)
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to get attachment file size", err, s.log.Field("Filename", file.Filename))
+			return nil, err
+		}
+
+		attachment := model.Attachment{
+			PostID:     post.ID,
+			UploaderId: post.AuthorID,
+			Url:        attachmentUrl,
+			Filename:   filename,
+			MimeType:   mimeType,
+			FileSize:   fileSize,
+		}
+		_, err = s.CreateAttachment(ctx, post, &attachment)
+
+		if err != nil {
+			s.log.Error(ctx, "Failed to create attachment record", err, s.log.Field("PostID", post.ID), s.log.Field("Filename", filename))
+			return nil, err
+		}
+	}
 
 	if err != nil {
 		return nil, err
@@ -196,7 +197,7 @@ func (s *PostService) Create(
 func (s *PostService) Update(
 	ctx *gin.Context,
 	ID uint64,
-	Content *string,
+	Content string,
 ) (*model.Post, error) {
 	post, err := s.r.GetPostByID(ctx, ID)
 
@@ -208,8 +209,8 @@ func (s *PostService) Update(
 		return nil, errors.New("Post not found")
 	}
 
-	if Content != nil {
-		post.Content = *Content
+	if Content != "" {
+		post.Content = Content
 	}
 
 	post.IsEdited = true
@@ -223,7 +224,7 @@ func (s *PostService) Update(
 	return post, nil
 }
 
-func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
+func (s *PostService) Delete(ctx *gin.Context, ID uint64, moderatorID *uint, reason *string) error {
 	post, err := s.r.GetPostByID(ctx, ID)
 
 	if err != nil {
@@ -237,7 +238,7 @@ func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
 	replies := post.Posts
 
 	for _, reply := range replies {
-		err = s.Delete(ctx, uint64(reply.ID))
+		err = s.Delete(ctx, uint64(reply.ID), moderatorID, reason)
 
 		if err != nil {
 			return err
@@ -248,6 +249,17 @@ func (s *PostService) Delete(ctx *gin.Context, ID uint64) error {
 
 	if err != nil {
 		return err
+	}
+
+	if moderatorID != nil && reason != nil {
+		postID := uint(ID)
+		log := &model.ModerationLog{
+			ModeratorId:  *moderatorID,
+			TargetPostId: &postID,
+			Action:       "delete_post",
+			Reason:       *reason,
+		}
+		s.moderationLogRepo.Create(ctx, log)
 	}
 
 	return nil
@@ -427,10 +439,10 @@ func (s *PostService) MarkAsSolution(ctx *gin.Context, postID uint64, userID uin
 }
 
 func (s *PostService) CreateAttachment(ctx *gin.Context, post *model.Post, attachment *model.Attachment) (*model.Attachment, error) {
-
 	createdAttachment, err := s.r.CreateAttachment(ctx, uint64(post.ID), attachment)
-
+	s.log.Debug(ctx, "Attachment created", s.log.Field("AttachmentID", createdAttachment.ID), s.log.Field("PostID", post.ID))
 	if err != nil {
+		s.log.Error(ctx, "Failed to create attachment record", err, s.log.Field("PostID", post.ID), s.log.Field("Filename", attachment.Filename))
 		return nil, err
 	}
 

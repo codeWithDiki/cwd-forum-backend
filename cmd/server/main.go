@@ -14,6 +14,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func main() {
@@ -46,12 +51,30 @@ func main() {
 
 	go wsHub.StartRedisListener()
 
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials(os.Getenv("S3_ACCESS_KEY"), os.Getenv("S3_SECRET_KEY"), ""),
+		Endpoint:         aws.String(os.Getenv("S3_ENDPOINT")),
+		Region:           aws.String(os.Getenv("S3_REGION")),
+		DisableSSL:       aws.Bool(false),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+
+	newSession, err := session.NewSession(s3Config)
+
+	if err != nil {
+		log.Fatal(appCtx, "Failed to create AWS session")
+		return
+	}
+
+	s3Client := s3.New(newSession)
+
 	deps := app.Dependencies{
 		DB:     db,
 		Redis:  redis,
 		Worker: workerPool,
 		Logger: log,
 		WsHub:  wsHub,
+		S3:     s3Client,
 	}
 
 	r := routes.SetupRouter(deps)

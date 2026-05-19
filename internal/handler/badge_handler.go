@@ -31,19 +31,19 @@ type CreateBadgeRequest struct {
 	Description     string                `form:"description" binding:"required"`
 	CriteriaType    string                `form:"criteria_type" binding:"required"`
 	CriteriaValue   int                   `form:"criteria_value" binding:"required"`
-	FontColor       string                `form:"font_color" binding:"required"`
-	BackgroundColor string                `form:"background_color" binding:"required"`
+	FontColor       string                `form:"font_color" binding:"required,hexcolor"`
+	BackgroundColor string                `form:"background_color" binding:"required,hexcolor"`
 	Icon            *multipart.FileHeader `form:"icon" binding:"required"`
 }
 
 type UpdateBadgeRequest struct {
-	Name            string                `form:"name"`
-	Description     string                `form:"description"`
-	CriteriaType    string                `form:"criteria_type"`
-	CriteriaValue   int                   `form:"criteria_value"`
-	FontColor       string                `form:"font_color"`
-	BackgroundColor string                `form:"background_color"`
-	Icon            *multipart.FileHeader `form:"icon"`
+	Name            string                `form:"name" binding:"omitempty"`
+	Description     string                `form:"description" binding:"omitempty"`
+	CriteriaType    string                `form:"criteria_type" binding:"omitempty"`
+	CriteriaValue   int                   `form:"criteria_value" binding:"omitempty"`
+	FontColor       string                `form:"font_color" binding:"omitempty,hexcolor"`
+	BackgroundColor string                `form:"background_color" binding:"omitempty,hexcolor"`
+	Icon            *multipart.FileHeader `form:"icon" binding:"omitempty"`
 }
 
 // GETTER

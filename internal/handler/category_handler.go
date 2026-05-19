@@ -2,6 +2,8 @@ package handler
 
 import (
 	"gin-quickstart/internal/service"
+	"gin-quickstart/pkg/utils"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 
@@ -13,23 +15,23 @@ type CategoryHandler struct {
 }
 
 type CreateCategoryRequest struct {
-	ParentID    *uint  `json:"parent_id"`
-	Name        string `json:"name" binding:"required"`
-	Slug        string `json:"slug" binding:"required"`
-	Description string `json:"description"`
-	IconUrl     string `json:"icon_url"`
-	SortOrder   int    `json:"sort_order"`
-	IsPrivate   bool   `json:"is_private"`
+	ParentID    *uint                 `json:"parent_id" form:"parent_id" binding:"omitempty,gt=0"`
+	Name        string                `json:"name" form:"name" binding:"required"`
+	Slug        string                `json:"slug" form:"slug" binding:"required,slug,no_spaces"`
+	Description string                `json:"description" form:"description" binding:"omitempty"`
+	SortOrder   int                   `json:"sort_order" form:"sort_order" binding:"omitempty"`
+	IsPrivate   bool                  `json:"is_private" form:"is_private" binding:"omitempty"`
+	Icon        *multipart.FileHeader `json:"icon" binding:"omitempty" form:"icon"`
 }
 
 type UpdateCategoryRequest struct {
-	ParentID    uint   `json:"parent_id,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Slug        string `json:"slug,omitempty"`
-	Description string `json:"description,omitempty"`
-	IconUrl     string `json:"icon_url,omitempty"`
-	SortOrder   int    `json:"sort_order,omitempty"`
-	IsPrivate   bool   `json:"is_private,omitempty"`
+	ParentID    uint                  `json:"parent_id,omitempty" form:"parent_id,omitempty" binding:"omitempty,gt=0"`
+	Name        string                `json:"name,omitempty" form:"name,omitempty" binding:"omitempty"`
+	Slug        string                `json:"slug,omitempty" form:"slug,omitempty" binding:"omitempty,slug,no_spaces"`
+	Description string                `json:"description,omitempty" form:"description,omitempty" binding:"omitempty"`
+	SortOrder   int                   `json:"sort_order,omitempty" form:"sort_order,omitempty" binding:"omitempty"`
+	IsPrivate   bool                  `json:"is_private,omitempty" form:"is_private,omitempty" binding:"omitempty"`
+	Icon        *multipart.FileHeader `json:"icon,omitempty" form:"icon" binding:"omitempty"`
 }
 
 func NewCategoryHandler(s *service.CategoryService) *CategoryHandler {
@@ -123,10 +125,11 @@ func (h CategoryHandler) GetCategoryBySlug(c *gin.Context) {
 func (h *CategoryHandler) Create(c *gin.Context) {
 	var req CreateCategoryRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
@@ -137,9 +140,9 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 		req.Name,
 		req.Slug,
 		req.Description,
-		req.IconUrl,
 		req.SortOrder,
 		req.IsPrivate,
+		req.Icon,
 	)
 
 	if err != nil {
@@ -159,10 +162,11 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 func (h *CategoryHandler) Update(c *gin.Context) {
 	var req UpdateCategoryRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"data":    utils.BuildValidationErrors(err, &req),
+			"error":   "Validation Errors",
 		})
 		return
 	}
@@ -185,9 +189,9 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		req.Name,
 		req.Slug,
 		req.Description,
-		req.IconUrl,
 		req.SortOrder,
 		req.IsPrivate,
+		req.Icon,
 	)
 
 	if err != nil {
